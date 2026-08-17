@@ -1,0 +1,73 @@
+{
+    "name": "victorycodedev/toastkit",
+    "version": "1.0.0",
+    "description": "Rich, customizable native toast notifications for NativePHP Mobile.",
+    "namespace": "Toastkit",
+    "keywords": [],
+    "category": "utilities",
+    "license": "MIT",
+    "pricing": {
+        "type": "free"
+    },
+    "author": {
+        "name": "Your Name",
+        "email": "you@example.com",
+        "url": ""
+    },
+    "homepage": "",
+    "repository": "",
+    "funding": [],
+    "platforms": [
+        "android",
+        "ios"
+    ],
+    "icon": "resources/icon.png",
+    "screenshots": [],
+    "bridge_functions": [
+        {
+            "name": "Toastkit.Execute",
+            "android": "com.victorycodedev.plugins.toastkit.ToastkitFunctions.Execute",
+            "ios": "ToastkitFunctions.Execute",
+            "description": "Execute the plugin functionality"
+        },
+        {
+            "name": "Toastkit.GetStatus",
+            "android": "com.victorycodedev.plugins.toastkit.ToastkitFunctions.GetStatus",
+            "ios": "ToastkitFunctions.GetStatus",
+            "description": "Get the current status"
+        }
+    ],
+    "android": {
+        "min_version": 21,
+        "permissions": [],
+        "repositories": [],
+        "dependencies": {
+            "implementation": []
+        },
+        "activities": [],
+        "services": [],
+        "receivers": [],
+        "providers": []
+    },
+    "ios": {
+        "min_version": "15.0",
+        "permissions": [],
+        "repositories": [],
+        "dependencies": {
+            "swift_packages": [],
+            "pods": []
+        }
+    },
+    "assets": {
+        "android": [],
+        "ios": []
+    },
+    "secrets": [],
+    "events": [
+        "Victorycodedev\\Toastkit\\Events\\ToastkitCompleted"
+    ],
+    "service_provider": "Victorycodedev\\Toastkit\\ToastkitServiceProvider",
+    "hooks": {
+        "copy_assets": "nativephp:toastkit:copy-assets"
+    }
+}
