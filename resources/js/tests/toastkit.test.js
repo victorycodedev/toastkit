@@ -1,22 +1,136 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { Toast } from "../Toast.js";
+
+import {
+  Toast,
+  PendingToast,
+  PendingToastUpdate,
+  Show,
+  Update,
+  Dismiss,
+  DismissAll,
+  show,
+  update,
+  dismiss,
+  dismissAll,
+} from "../index.js";
+
 function fakeBridge(calls) {
   globalThis.fetch = async (_url, options) => {
     calls.push(JSON.parse(options.body));
     return { ok: true, json: async () => ({ status: "success", data: {} }) };
   };
 }
-test("show uses V1 contract and returns stable ID", async () => {
+
+function resetFetch() {
+  delete globalThis.fetch;
+}
+
+test("Toast.make returns a PendingToast builder", () => {
+  const pending = Toast.make("Hello");
+  assert.ok(pending instanceof PendingToast);
+  assert.equal(pending.payload().message, "Hello");
+});
+
+test("shortcut variants set the correct variant and icon", () => {
+  assert.equal(Toast.success("A").payload().variant, "success");
+  assert.equal(Toast.error("A").payload().variant, "error");
+  assert.equal(Toast.warning("A").payload().variant, "warning");
+  assert.equal(Toast.info("A").payload().variant, "info");
+  assert.equal(Toast.neutral("A").payload().variant, "neutral");
+  assert.deepEqual(Toast.success("A").payload().icon, { name: "check" });
+});
+
+test("generated IDs are stable strings and custom IDs override", () => {
+  const pending = Toast.info("A");
+  assert.equal(typeof pending.payload().id, "string");
+  assert.ok(pending.payload().id.length > 0);
+
+  const custom = Toast.info("A").id("upload");
+  assert.equal(custom.payload().id, "upload");
+});
+
+test("title and message flow through the payload", () => {
+  const payload = Toast.make("Body").title("Heading").payload();
+  assert.equal(payload.message, "Body");
+  assert.equal(payload.title, "Heading");
+});
+
+test("icon supports logical names and platform overrides", () => {
+  assert.deepEqual(Toast.make("x").icon("check").payload().icon, {
+    name: "check",
+  });
+  assert.deepEqual(
+    Toast.make("x")
+      .icon("check", { ios: "checkmark.circle.fill", android: "done" })
+      .payload().icon,
+    { name: "check", ios: "checkmark.circle.fill", android: "done" },
+  );
+});
+
+test("position, duration, persistent and animation are set", () => {
+  const payload = Toast.make("x")
+    .position("top")
+    .duration(1200)
+    .animation("slide")
+    .payload();
+  assert.equal(payload.position, "top");
+  assert.equal(payload.duration, 1200);
+  assert.equal(payload.animation, "slide");
+  assert.equal(Toast.make("x").persistent().payload().persistent, true);
+  assert.equal(Toast.make("x").persistent().payload().duration, null);
+});
+
+test("swipe, dismissible and action are set", () => {
+  const payload = Toast.make("x")
+    .swipeToDismiss(false)
+    .dismissible()
+    .action("Retry", "retry")
+    .payload();
+  assert.equal(payload.swipe_to_dismiss, false);
+  assert.equal(payload.dismissible, true);
+  assert.deepEqual(payload.action, { id: "retry", label: "Retry" });
+});
+
+test("custom styling is normalized", () => {
+  const payload = Toast.make("x")
+    .background("#abc")
+    .foreground("#ffffff")
+    .iconColor("#22c55e")
+    .actionColor("#60a5fa")
+    .cornerRadius(18)
+    .padding(12)
+    .shadow(false)
+    .payload();
+  assert.equal(payload.style.background, "#ABC");
+  assert.equal(payload.style.foreground, "#FFFFFF");
+  assert.equal(payload.style.icon_color, "#22C55E");
+  assert.equal(payload.style.action_color, "#60A5FA");
+  assert.equal(payload.style.corner_radius, 18);
+  assert.equal(payload.style.padding, 12);
+  assert.equal(payload.style.shadow, false);
+});
+
+test("queue, stack and maxVisible are set", () => {
+  assert.equal(Toast.make("x").queue().payload().strategy, "queue");
+  assert.equal(Toast.make("x").stack().payload().strategy, "stack");
+  assert.equal(Toast.make("x").stack().maxVisible(4).payload().max_visible, 4);
+});
+
+test("show() sends the full V1 payload to the bridge", async () => {
   const calls = [];
   fakeBridge(calls);
-  const pending = Toast.success("Saved").position("top").duration(1200);
-  const id = await pending.show();
+  const id = await Toast.success("Saved").position("top").duration(1200).show();
   assert.equal(calls[0].method, "ToastKit.Show");
   assert.equal(calls[0].params.id, id);
   assert.equal(calls[0].params.variant, "success");
+  assert.equal(calls[0].params.contract_version, 1);
+  assert.equal(calls[0].params.position, "top");
+  assert.equal(calls[0].params.duration, 1200);
+  resetFetch();
 });
-test("update is sparse", async () => {
+
+test("update is sparse and retains the ID", async () => {
   const calls = [];
   fakeBridge(calls);
   await Toast.update("upload").message("Done").success().show();
@@ -24,14 +138,10 @@ test("update is sparse", async () => {
     method: "ToastKit.Update",
     params: { id: "upload", changes: { message: "Done", variant: "success" } },
   });
+  resetFetch();
 });
-test("builders isolate and validate", () => {
-  assert.equal(Toast.success("A").payload().variant, "success");
-  assert.equal(Toast.error("B").payload().variant, "error");
-  assert.throws(() => Toast.make(""), /message/);
-  assert.throws(() => Toast.make("x").background("red"), /Colors/);
-});
-test("dismiss uses native bridge", async () => {
+
+test("dismiss and dismissAll call the native bridge", async () => {
   const calls = [];
   fakeBridge(calls);
   await Toast.dismiss("one");
@@ -40,4 +150,61 @@ test("dismiss uses native bridge", async () => {
     calls.map((x) => x.method),
     ["ToastKit.Dismiss", "ToastKit.DismissAll"],
   );
+  assert.deepEqual(calls[0].params, { id: "one" });
+  resetFetch();
+});
+
+test("builders isolate their state", () => {
+  const a = Toast.success("A").position("top");
+  const b = Toast.error("B");
+  assert.equal(a.payload().position, "top");
+  assert.equal(b.payload().position, "bottom");
+  assert.equal(b.payload().variant, "error");
+});
+
+test("every bridge function has a named export", async () => {
+  const calls = [];
+  fakeBridge(calls);
+  await Show({ id: "one", message: "Hi" });
+  await Update("two", { message: "Bye" });
+  await Dismiss("three");
+  await DismissAll();
+  assert.deepEqual(
+    calls.map((x) => x.method),
+    [
+      "ToastKit.Show",
+      "ToastKit.Update",
+      "ToastKit.Dismiss",
+      "ToastKit.DismissAll",
+    ],
+  );
+  assert.deepEqual(calls[0].params, { id: "one", message: "Hi" });
+  assert.deepEqual(calls[1].params, { id: "two", changes: { message: "Bye" } });
+  assert.deepEqual(calls[2].params, { id: "three" });
+  resetFetch();
+});
+
+test("lowercase aliases match the PascalCase exports", () => {
+  assert.equal(show, Show);
+  assert.equal(update, Update);
+  assert.equal(dismiss, Dismiss);
+  assert.equal(dismissAll, DismissAll);
+});
+
+test("validation rejects bad input", () => {
+  assert.throws(() => Toast.make(""), /message/);
+  assert.throws(() => Toast.make("x").background("red"), /Colors/);
+  assert.throws(() => Toast.make("x").position("left"), /position/);
+  assert.throws(() => Toast.make("x").animation("bounce"), /animation/);
+  assert.throws(() => Toast.make("x").variant("danger"), /variant/);
+  assert.throws(() => Toast.make("x").strategy("grid"), /strategy/);
+  assert.throws(() => Toast.make("x").maxVisible(0), /maxVisible/);
+  assert.throws(() => Toast.make("x").padding(-1), /padding/);
+  assert.throws(() => Toast.make("x").cornerRadius(-1), /corner radius/);
+  assert.throws(() => Toast.make("x").duration(0), /duration/);
+  assert.throws(() => Toast.make("x").action("", "retry"), /action label/);
+  assert.throws(() => Toast.make("x").icon(), /icon name or platform override/);
+  assert.throws(() => Toast.make("x").id(""), /toast ID/);
+  assert.throws(() => Toast.update(""), /toast ID/);
+  assert.throws(() => new PendingToastUpdate("one").payload(), /change/);
 });

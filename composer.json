@@ -3,13 +3,25 @@
     "description": "Rich, customizable native toast notifications for NativePHP Mobile.",
     "type": "nativephp-plugin",
     "license": "MIT",
+    "keywords": [
+        "nativephp",
+        "nativephp-plugin",
+        "mobile",
+        "toast",
+        "notifications"
+    ],
+    "homepage": "https://github.com/victorycodedev/toastkit",
+    "support": {
+        "issues": "https://github.com/victorycodedev/toastkit/issues",
+        "source": "https://github.com/victorycodedev/toastkit"
+    },
     "authors": [
         {
             "name": "Victory Efekpogua"
         }
     ],
     "require": {
-        "php": "^8.2",
+        "php": "^8.3",
         "nativephp/mobile": "^4.1"
     },
     "autoload": {
@@ -28,7 +40,8 @@
         }
     },
     "require-dev": {
-        "pestphp/pest": "^3.0"
+        "laravel/framework": "^13.0",
+        "pestphp/pest": "^4.0"
     },
     "scripts": {
         "test": "pest"

@@ -1,4 +1,7 @@
 /vendor/
 /node_modules/
+/.phpunit.cache/
+/.pest-cache/
+composer.lock
 .DS_Store
 *.log

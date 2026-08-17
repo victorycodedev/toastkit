@@ -3,6 +3,13 @@
     "version": "1.0.0",
     "description": "Rich, customizable native toast notifications for NativePHP Mobile.",
     "namespace": "ToastKit",
+    "keywords": [
+        "nativephp",
+        "nativephp-plugin",
+        "mobile",
+        "toast",
+        "notifications"
+    ],
     "category": "utilities",
     "license": "MIT",
     "pricing": {
@@ -12,6 +19,8 @@
         "name": "Victory Efekpogua",
         "url": "https://github.com/victorycodedev"
     },
+    "homepage": "https://github.com/victorycodedev/toastkit",
+    "repository": "https://github.com/victorycodedev/toastkit",
     "platforms": [
         "android",
         "ios"
