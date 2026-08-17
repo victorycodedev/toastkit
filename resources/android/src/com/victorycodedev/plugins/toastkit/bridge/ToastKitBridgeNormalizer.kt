@@ -5,8 +5,8 @@ import com.victorycodedev.plugins.toastkit.model.*
 
 internal class ToastKitInputException(message: String) : IllegalArgumentException(message)
 
-internal object BridgeNormalizer {
-    fun show(parameters: Map<String, Any>): ToastConfiguration {
+internal object ToastKitBridgeNormalizer {
+    fun show(parameters: Map<String, Any>): ToastKitConfiguration {
         val version = (parameters["contract_version"] as? Number)?.toInt() ?: 1
         requireInput(version == 1, "Unsupported contract_version: $version")
         return configuration(parameters)
@@ -21,7 +21,7 @@ internal object BridgeNormalizer {
 
     fun id(parameters: Map<String, Any>): String = requiredString(parameters, "id")
 
-    fun applyChanges(current: ToastConfiguration, changes: Map<String, Any>): ToastConfiguration {
+    fun applyChanges(current: ToastKitConfiguration, changes: Map<String, Any>): ToastKitConfiguration {
         var next = current
         changes["message"]?.let { next = next.copy(message = nonEmptyString(it, "message")) }
         if (changes.containsKey("title")) next = next.copy(title = nullableString(changes["title"], "title"))
@@ -49,9 +49,9 @@ internal object BridgeNormalizer {
         return next
     }
 
-    private fun configuration(values: Map<String, Any>): ToastConfiguration {
+    private fun configuration(values: Map<String, Any>): ToastKitConfiguration {
         val persistent = values["persistent"]?.let { boolean(it, "persistent") } ?: false
-        return ToastConfiguration(
+        return ToastKitConfiguration(
             id = requiredString(values, "id"),
             message = requiredString(values, "message"),
             title = nullableString(values["title"], "title"),
@@ -69,20 +69,20 @@ internal object BridgeNormalizer {
         )
     }
 
-    private fun icon(value: Any): ToastIcon {
+    private fun icon(value: Any): ToastKitIcon {
         val map = stringMap(value) ?: throw ToastKitInputException("icon must be an object")
         val name = nullableString(map["name"], "icon.name")
         val android = nullableString(map["android"], "icon.android")
         requireInput(name != null || android != null, "icon requires name or android")
-        return ToastIcon(name, android)
+        return ToastKitIcon(name, android)
     }
 
-    private fun action(value: Any): ToastAction {
+    private fun action(value: Any): ToastKitAction {
         val map = stringMap(value) ?: throw ToastKitInputException("action must be an object")
-        return ToastAction(requiredString(map, "id"), requiredString(map, "label"))
+        return ToastKitAction(requiredString(map, "id"), requiredString(map, "label"))
     }
 
-    private fun style(value: Any, fallback: ToastStyle): ToastStyle {
+    private fun style(value: Any, fallback: ToastKitStyle): ToastKitStyle {
         val map = stringMap(value) ?: throw ToastKitInputException("style must be an object")
         return fallback.copy(
             background = map["background"]?.let { color(it, "background") } ?: fallback.background,
@@ -95,7 +95,7 @@ internal object BridgeNormalizer {
         )
     }
 
-    private fun variantStyle(variant: String): ToastStyle {
+    private fun variantStyle(variant: String): ToastKitStyle {
         val colors = when (variant) {
             "success" -> listOf("#166534", "#FFFFFF", "#86EFAC", "#BBF7D0")
             "error" -> listOf("#991B1B", "#FFFFFF", "#FCA5A5", "#FECACA")
@@ -103,14 +103,14 @@ internal object BridgeNormalizer {
             "info" -> listOf("#1E40AF", "#FFFFFF", "#93C5FD", "#BFDBFE")
             else -> listOf("#1F2937", "#FFFFFF", "#D1D5DB", "#E5E7EB")
         }
-        return ToastStyle(parseColor(colors[0]), parseColor(colors[1]), parseColor(colors[2]), parseColor(colors[3]), 16f, 16f, true)
+        return ToastKitStyle(parseColor(colors[0]), parseColor(colors[1]), parseColor(colors[2]), parseColor(colors[3]), 16f, 16f, true)
     }
 
-    private fun defaultIcon(variant: String): ToastIcon? = when (variant) {
-        "success" -> ToastIcon("check", null)
-        "error" -> ToastIcon("error", null)
-        "warning" -> ToastIcon("warning", null)
-        "info" -> ToastIcon("info", null)
+    private fun defaultIcon(variant: String): ToastKitIcon? = when (variant) {
+        "success" -> ToastKitIcon("check", null)
+        "error" -> ToastKitIcon("error", null)
+        "warning" -> ToastKitIcon("warning", null)
+        "info" -> ToastKitIcon("info", null)
         else -> null
     }
 
@@ -128,9 +128,9 @@ internal object BridgeNormalizer {
     }
 
     private fun variant(value: Any): String = enumString(value, "variant", setOf("neutral", "success", "error", "warning", "info"))
-    private fun position(value: Any) = ToastPosition.valueOf(enumString(value, "position", setOf("top", "center", "bottom")).uppercase())
-    private fun animation(value: Any) = ToastAnimation.valueOf(enumString(value, "animation", setOf("fade", "slide", "scale", "spring")).uppercase())
-    private fun strategy(value: Any) = ToastStrategy.valueOf(enumString(value, "strategy", setOf("queue", "stack")).uppercase())
+    private fun position(value: Any) = ToastKitPosition.valueOf(enumString(value, "position", setOf("top", "center", "bottom")).uppercase())
+    private fun animation(value: Any) = ToastKitAnimation.valueOf(enumString(value, "animation", setOf("fade", "slide", "scale", "spring")).uppercase())
+    private fun strategy(value: Any) = ToastKitStrategy.valueOf(enumString(value, "strategy", setOf("queue", "stack")).uppercase())
     private fun enumString(value: Any, name: String, allowed: Set<String>): String {
         val text = nonEmptyString(value, name).lowercase()
         requireInput(text in allowed, "Invalid $name: $text")

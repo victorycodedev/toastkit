@@ -5,7 +5,7 @@ import com.nativephp.mobile.utils.NativeActionCoordinator
 import org.json.JSONObject
 import java.lang.ref.WeakReference
 
-internal object NativeEventDispatcher {
+internal object ToastKitEventDispatcher {
     private const val SHOWN = "Victorycodedev\\ToastKit\\Events\\ToastShown"
     private const val DISMISSED = "Victorycodedev\\ToastKit\\Events\\ToastDismissed"
     private const val ACTION = "Victorycodedev\\ToastKit\\Events\\ToastActionPressed"

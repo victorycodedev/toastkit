@@ -2,23 +2,23 @@ import Foundation
 import SwiftUI
 
 @MainActor
-final class ToastManager: ObservableObject {
-    static let shared = ToastManager()
+final class ToastKitManager: ObservableObject {
+    static let shared = ToastKitManager()
 
-    @Published private(set) var visible: [ToastConfiguration] = []
-    private var states: [String: ToastState] = [:]
+    @Published private(set) var visible: [ToastKitConfiguration] = []
+    private var states: [String: ToastKitState] = [:]
     private var waiting: [String] = []
     private var timers: [String: Task<Void, Never>] = [:]
 
-    func show(_ configuration: ToastConfiguration) {
+    func show(_ configuration: ToastKitConfiguration) {
         guard states[configuration.id] == nil else { return }
-        states[configuration.id] = ToastState(configuration: configuration)
+        states[configuration.id] = ToastKitState(configuration: configuration)
         if canAdmit(configuration) { admit(configuration.id) } else { waiting.append(configuration.id) }
     }
 
     func update(_ id: String, changes: [String: Any]) throws {
         guard let state = states[id], !state.terminated else { return }
-        let updated = try BridgeNormalizer.applying(changes, to: state.configuration)
+        let updated = try ToastKitBridgeNormalizer.applying(changes, to: state.configuration)
         var next = state
         next.configuration = updated
         states[id] = next
@@ -38,11 +38,11 @@ final class ToastManager: ObservableObject {
 
     func pressAction(toastId: String, actionId: String) {
         guard let state = states[toastId], !state.terminated else { return }
-        NativeEventDispatcher.action(toastId, actionId: actionId)
+        ToastKitEventDispatcher.action(toastId, actionId: actionId)
         terminate(toastId, reason: "action")
     }
 
-    private func canAdmit(_ configuration: ToastConfiguration) -> Bool {
+    private func canAdmit(_ configuration: ToastKitConfiguration) -> Bool {
         switch configuration.strategy {
         case .queue: return visible.isEmpty
         case .stack:
@@ -57,10 +57,10 @@ final class ToastManager: ObservableObject {
         states[id] = state
         visible.append(state.configuration)
         schedule(state.configuration)
-        NativeEventDispatcher.shown(id)
+        ToastKitEventDispatcher.shown(id)
     }
 
-    private func schedule(_ configuration: ToastConfiguration) {
+    private func schedule(_ configuration: ToastKitConfiguration) {
         timers.removeValue(forKey: configuration.id)?.cancel()
         guard let milliseconds = configuration.durationMilliseconds else { return }
         timers[configuration.id] = Task { [weak self] in
@@ -78,7 +78,7 @@ final class ToastManager: ObservableObject {
         waiting.removeAll { $0 == id }
         withAnimation(animation(for: state.configuration)) { visible.removeAll { $0.id == id } }
         states.removeValue(forKey: id)
-        NativeEventDispatcher.dismissed(id, reason: reason)
+        ToastKitEventDispatcher.dismissed(id, reason: reason)
         if shouldPromote { promote() }
     }
 
@@ -91,7 +91,7 @@ final class ToastManager: ObservableObject {
         }
     }
 
-    private func animation(for toast: ToastConfiguration) -> Animation {
+    private func animation(for toast: ToastKitConfiguration) -> Animation {
         switch toast.animation {
         case .fade, .slide, .scale: return .easeInOut(duration: 0.2)
         case .spring: return .spring(response: 0.35, dampingFraction: 0.78)

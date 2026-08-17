@@ -2,8 +2,8 @@ import SwiftUI
 import UIKit
 
 @MainActor
-final class ToastHostInstaller {
-    static let shared = ToastHostInstaller()
+final class ToastKitHostInstaller {
+    static let shared = ToastKitHostInstaller()
     private var windows: [ObjectIdentifier: UIWindow] = [:]
     private var observers: [NSObjectProtocol] = []
     private var installed = false
@@ -25,7 +25,7 @@ final class ToastHostInstaller {
         for case let scene as UIWindowScene in UIApplication.shared.connectedScenes where scene.activationState != .unattached {
             let key = ObjectIdentifier(scene)
             guard windows[key] == nil else { continue }
-            let window = PassthroughWindow(windowScene: scene)
+            let window = ToastKitPassthroughWindow(windowScene: scene)
             window.windowLevel = .alert - 1
             window.backgroundColor = .clear
             window.rootViewController = UIHostingController(rootView: ToastKitHost())
@@ -36,7 +36,7 @@ final class ToastHostInstaller {
     }
 }
 
-private final class PassthroughWindow: UIWindow {
+private final class ToastKitPassthroughWindow: UIWindow {
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         let result = super.hitTest(point, with: event)
         return result === rootViewController?.view ? nil : result
@@ -44,5 +44,5 @@ private final class PassthroughWindow: UIWindow {
 }
 
 func initializeToastKit() {
-    Task { @MainActor in ToastHostInstaller.shared.install() }
+    Task { @MainActor in ToastKitHostInstaller.shared.install() }
 }

@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct ToastKitHost: View {
-    @ObservedObject private var manager = ToastManager.shared
+    @ObservedObject private var manager = ToastKitManager.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -20,7 +20,7 @@ struct ToastKitHost: View {
     }
 
     @ViewBuilder
-    private func host(for position: ToastPosition, alignment: Alignment) -> some View {
+    private func host(for position: ToastKitPosition, alignment: Alignment) -> some View {
         VStack(spacing: 8) {
             ForEach(manager.visible.filter { $0.position == position }) { toast in
                 ToastKitView(toast: toast, reduceMotion: reduceMotion)
@@ -31,7 +31,7 @@ struct ToastKitHost: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
     }
 
-    private func transition(for toast: ToastConfiguration) -> AnyTransition {
+    private func transition(for toast: ToastKitConfiguration) -> AnyTransition {
         if reduceMotion { return .opacity }
         switch toast.animation {
         case .fade: return .opacity
@@ -43,7 +43,7 @@ struct ToastKitHost: View {
 }
 
 private struct ToastKitView: View {
-    let toast: ToastConfiguration
+    let toast: ToastKitConfiguration
     let reduceMotion: Bool
     @State private var drag: CGSize = .zero
 
@@ -60,11 +60,11 @@ private struct ToastKitView: View {
             }
             .foregroundStyle(toast.style.foreground).frame(maxWidth: .infinity, alignment: .leading)
             if let action = toast.action {
-                Button(action.label) { ToastManager.shared.pressAction(toastId: toast.id, actionId: action.id) }
+                Button(action.label) { ToastKitManager.shared.pressAction(toastId: toast.id, actionId: action.id) }
                     .font(.subheadline.weight(.bold)).foregroundStyle(toast.style.actionColor)
             }
             if toast.dismissible {
-                Button { ToastManager.shared.dismiss(toast.id) } label: {
+                Button { ToastKitManager.shared.dismiss(toast.id) } label: {
                     Image(systemName: "xmark").font(.system(size: 13, weight: .bold)).frame(width: 28, height: 28)
                 }
                 .foregroundStyle(toast.style.foreground).accessibilityLabel("Dismiss")
@@ -92,7 +92,7 @@ private struct ToastKitView: View {
             .onEnded { value in
                 let projected = toast.position == .center ? value.predictedEndTranslation.width : value.predictedEndTranslation.height
                 let distance = toast.position == .center ? abs(value.translation.width) : abs(value.translation.height)
-                if distance > 80 || abs(projected) > 180 { ToastManager.shared.dismiss(toast.id, reason: "swipe") }
+                if distance > 80 || abs(projected) > 180 { ToastKitManager.shared.dismiss(toast.id, reason: "swipe") }
                 else { drag = .zero }
             }
     }

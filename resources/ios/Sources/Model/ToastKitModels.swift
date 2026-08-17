@@ -1,20 +1,20 @@
 import SwiftUI
 
-enum ToastPosition: String { case top, center, bottom }
-enum ToastAnimationKind: String { case fade, slide, scale, spring }
-enum ToastStrategy: String { case queue, stack }
+enum ToastKitPosition: String { case top, center, bottom }
+enum ToastKitAnimationKind: String { case fade, slide, scale, spring }
+enum ToastKitStrategy: String { case queue, stack }
 
-struct ToastIconConfiguration {
+struct ToastKitIconConfiguration {
     let name: String?
     let ios: String?
 }
 
-struct ToastActionConfiguration {
+struct ToastKitActionConfiguration {
     let id: String
     let label: String
 }
 
-struct ToastStyleConfiguration {
+struct ToastKitStyleConfiguration {
     var background: Color
     var foreground: Color
     var iconColor: Color
@@ -24,25 +24,25 @@ struct ToastStyleConfiguration {
     var shadow: Bool
 }
 
-struct ToastConfiguration: Identifiable {
+struct ToastKitConfiguration: Identifiable {
     let id: String
     var message: String
     var title: String?
     var variant: String
-    var icon: ToastIconConfiguration?
-    var position: ToastPosition
+    var icon: ToastKitIconConfiguration?
+    var position: ToastKitPosition
     var durationMilliseconds: Int?
-    var animation: ToastAnimationKind
+    var animation: ToastKitAnimationKind
     var swipeToDismiss: Bool
     var dismissible: Bool
-    var action: ToastActionConfiguration?
-    var style: ToastStyleConfiguration
-    var strategy: ToastStrategy
+    var action: ToastKitActionConfiguration?
+    var style: ToastKitStyleConfiguration
+    var strategy: ToastKitStrategy
     var maxVisible: Int
 }
 
-struct ToastState {
-    var configuration: ToastConfiguration
+struct ToastKitState {
+    var configuration: ToastKitConfiguration
     var visible = false
     var terminated = false
 }

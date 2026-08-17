@@ -5,8 +5,8 @@ enum ToastKitInputError: LocalizedError {
     var errorDescription: String? { if case .invalid(let message) = self { message } else { "Invalid ToastKit payload" } }
 }
 
-enum BridgeNormalizer {
-    static func show(_ values: [String: Any]) throws -> ToastConfiguration {
+enum ToastKitBridgeNormalizer {
+    static func show(_ values: [String: Any]) throws -> ToastKitConfiguration {
         let version = (values["contract_version"] as? NSNumber)?.intValue ?? 1
         guard version == 1 else { throw ToastKitInputError.invalid("Unsupported contract_version: \(version)") }
         return try configuration(values)
@@ -22,7 +22,7 @@ enum BridgeNormalizer {
 
     static func id(_ values: [String: Any]) throws -> String { try requiredString(values, "id") }
 
-    static func applying(_ changes: [String: Any], to current: ToastConfiguration) throws -> ToastConfiguration {
+    static func applying(_ changes: [String: Any], to current: ToastKitConfiguration) throws -> ToastKitConfiguration {
         var next = current
         if let value = changes["message"] { next.message = try nonEmptyString(value, "message") }
         if changes.keys.contains("title") { next.title = try nullableString(changes["title"], "title") }
@@ -49,10 +49,10 @@ enum BridgeNormalizer {
         return next
     }
 
-    private static func configuration(_ values: [String: Any]) throws -> ToastConfiguration {
+    private static func configuration(_ values: [String: Any]) throws -> ToastKitConfiguration {
         let variantName = try variant(values["variant"] ?? "neutral")
         let persistent = try values["persistent"].map { try boolean($0, "persistent") } ?? false
-        return ToastConfiguration(
+        return ToastKitConfiguration(
             id: try requiredString(values, "id"),
             message: try requiredString(values, "message"),
             title: try nullableString(values["title"], "title"),
@@ -70,20 +70,20 @@ enum BridgeNormalizer {
         )
     }
 
-    private static func icon(_ value: Any) throws -> ToastIconConfiguration {
+    private static func icon(_ value: Any) throws -> ToastKitIconConfiguration {
         guard let map = value as? [String: Any] else { throw ToastKitInputError.invalid("icon must be an object") }
         let name = try nullableString(map["name"], "icon.name")
         let ios = try nullableString(map["ios"], "icon.ios")
         guard name != nil || ios != nil else { throw ToastKitInputError.invalid("icon requires name or ios") }
-        return ToastIconConfiguration(name: name, ios: ios)
+        return ToastKitIconConfiguration(name: name, ios: ios)
     }
 
-    private static func action(_ value: Any) throws -> ToastActionConfiguration {
+    private static func action(_ value: Any) throws -> ToastKitActionConfiguration {
         guard let map = value as? [String: Any] else { throw ToastKitInputError.invalid("action must be an object") }
-        return ToastActionConfiguration(id: try requiredString(map, "id"), label: try requiredString(map, "label"))
+        return ToastKitActionConfiguration(id: try requiredString(map, "id"), label: try requiredString(map, "label"))
     }
 
-    private static func style(_ value: Any, fallback: ToastStyleConfiguration) throws -> ToastStyleConfiguration {
+    private static func style(_ value: Any, fallback: ToastKitStyleConfiguration) throws -> ToastKitStyleConfiguration {
         guard let map = value as? [String: Any] else { throw ToastKitInputError.invalid("style must be an object") }
         var result = fallback
         if let value = map["background"] { result.background = try color(value, "background") }
@@ -96,7 +96,7 @@ enum BridgeNormalizer {
         return result
     }
 
-    private static func variantStyle(_ variant: String) -> ToastStyleConfiguration {
+    private static func variantStyle(_ variant: String) -> ToastKitStyleConfiguration {
         let colors: [String] = switch variant {
         case "success": ["#166534", "#FFFFFF", "#86EFAC", "#BBF7D0"]
         case "error": ["#991B1B", "#FFFFFF", "#FCA5A5", "#FECACA"]
@@ -104,15 +104,15 @@ enum BridgeNormalizer {
         case "info": ["#1E40AF", "#FFFFFF", "#93C5FD", "#BFDBFE"]
         default: ["#1F2937", "#FFFFFF", "#D1D5DB", "#E5E7EB"]
         }
-        return ToastStyleConfiguration(background: safeColor(colors[0]), foreground: safeColor(colors[1]), iconColor: safeColor(colors[2]), actionColor: safeColor(colors[3]), cornerRadius: 16, padding: 16, shadow: true)
+        return ToastKitStyleConfiguration(background: safeColor(colors[0]), foreground: safeColor(colors[1]), iconColor: safeColor(colors[2]), actionColor: safeColor(colors[3]), cornerRadius: 16, padding: 16, shadow: true)
     }
 
-    private static func defaultIcon(_ variant: String) -> ToastIconConfiguration? {
+    private static func defaultIcon(_ variant: String) -> ToastKitIconConfiguration? {
         switch variant {
-        case "success": ToastIconConfiguration(name: "check", ios: nil)
-        case "error": ToastIconConfiguration(name: "error", ios: nil)
-        case "warning": ToastIconConfiguration(name: "warning", ios: nil)
-        case "info": ToastIconConfiguration(name: "info", ios: nil)
+        case "success": ToastKitIconConfiguration(name: "check", ios: nil)
+        case "error": ToastKitIconConfiguration(name: "error", ios: nil)
+        case "warning": ToastKitIconConfiguration(name: "warning", ios: nil)
+        case "info": ToastKitIconConfiguration(name: "info", ios: nil)
         default: nil
         }
     }

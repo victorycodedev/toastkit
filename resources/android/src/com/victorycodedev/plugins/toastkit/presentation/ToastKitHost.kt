@@ -26,30 +26,30 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nativephp.mobile.ui.MaterialIcon
-import com.victorycodedev.plugins.toastkit.manager.ToastManager
+import com.victorycodedev.plugins.toastkit.manager.ToastKitManager
 import com.victorycodedev.plugins.toastkit.model.*
 import kotlin.math.abs
 
 @Composable
-internal fun ToastHost(position: ToastPosition) {
-    val items = ToastManager.rendered.filter { it.position == position }
-    val vertical = when (position) { ToastPosition.TOP -> Arrangement.Top; ToastPosition.CENTER -> Arrangement.Center; ToastPosition.BOTTOM -> Arrangement.Bottom }
+internal fun ToastKitHost(position: ToastKitPosition) {
+    val items = ToastKitManager.rendered.filter { it.position == position }
+    val vertical = when (position) { ToastKitPosition.TOP -> Arrangement.Top; ToastKitPosition.CENTER -> Arrangement.Center; ToastKitPosition.BOTTOM -> Arrangement.Bottom }
     val safeArea = when (position) {
-        ToastPosition.TOP -> Modifier.statusBarsPadding()
-        ToastPosition.BOTTOM -> Modifier.navigationBarsPadding()
-        ToastPosition.CENTER -> Modifier
+        ToastKitPosition.TOP -> Modifier.statusBarsPadding()
+        ToastKitPosition.BOTTOM -> Modifier.navigationBarsPadding()
+        ToastKitPosition.CENTER -> Modifier
     }
     Column(
         modifier = Modifier.fillMaxWidth().then(safeArea).padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = vertical,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        items.forEach { ToastCard(it) }
+        items.forEach { ToastKitCard(it) }
     }
 }
 
 @Composable
-private fun ToastCard(toast: ToastConfiguration) {
+private fun ToastKitCard(toast: ToastKitConfiguration) {
     var x by remember(toast.id) { mutableFloatStateOf(0f) }
     var y by remember(toast.id) { mutableFloatStateOf(0f) }
     var settling by remember(toast.id) { mutableStateOf(false) }
@@ -63,10 +63,10 @@ private fun ToastCard(toast: ToastConfiguration) {
         detectDragGestures(
             onDragStart = { velocityTracker.resetTracking() },
             onDragEnd = {
-                val distance = if (toast.position == ToastPosition.CENTER) abs(x) else abs(y)
+                val distance = if (toast.position == ToastKitPosition.CENTER) abs(x) else abs(y)
                 val velocity = velocityTracker.calculateVelocity()
-                val speed = if (toast.position == ToastPosition.CENTER) abs(velocity.x) else abs(velocity.y)
-                if (distance > 80.dp.toPx() || speed > 900f) ToastManager.dismiss(toast.id, "swipe") else { settling = true; x = 0f; y = 0f }
+                val speed = if (toast.position == ToastKitPosition.CENTER) abs(velocity.x) else abs(velocity.y)
+                if (distance > 80.dp.toPx() || speed > 900f) ToastKitManager.dismiss(toast.id, "swipe") else { settling = true; x = 0f; y = 0f }
             },
             onDragCancel = { settling = true; x = 0f; y = 0f },
         ) { change, amount ->
@@ -74,25 +74,25 @@ private fun ToastCard(toast: ToastConfiguration) {
             velocityTracker.addPosition(change.uptimeMillis, change.position)
             settling = false
             when (toast.position) {
-                ToastPosition.TOP -> y = (y + amount.y).coerceAtMost(0f)
-                ToastPosition.BOTTOM -> y = (y + amount.y).coerceAtLeast(0f)
-                ToastPosition.CENTER -> x += amount.x
+                ToastKitPosition.TOP -> y = (y + amount.y).coerceAtMost(0f)
+                ToastKitPosition.BOTTOM -> y = (y + amount.y).coerceAtLeast(0f)
+                ToastKitPosition.CENTER -> x += amount.x
             }
         }
     }
     val enter = if (reduceMotion) fadeIn(tween(120)) else when (toast.animation) {
-        ToastAnimation.FADE -> fadeIn(tween(180))
-        ToastAnimation.SLIDE -> slideInVertically(tween(220)) { if (toast.position == ToastPosition.BOTTOM) it else -it } + fadeIn()
-        ToastAnimation.SCALE -> scaleIn(tween(180), initialScale = .9f) + fadeIn()
-        ToastAnimation.SPRING -> scaleIn(spring(), initialScale = .86f) + fadeIn()
+        ToastKitAnimation.FADE -> fadeIn(tween(180))
+        ToastKitAnimation.SLIDE -> slideInVertically(tween(220)) { if (toast.position == ToastKitPosition.BOTTOM) it else -it } + fadeIn()
+        ToastKitAnimation.SCALE -> scaleIn(tween(180), initialScale = .9f) + fadeIn()
+        ToastKitAnimation.SPRING -> scaleIn(spring(), initialScale = .86f) + fadeIn()
     }
     val exit = if (reduceMotion) fadeOut(tween(100)) else when (toast.animation) {
-        ToastAnimation.FADE -> fadeOut(tween(160))
-        ToastAnimation.SLIDE -> slideOutVertically(tween(220)) { if (toast.position == ToastPosition.BOTTOM) it else -it } + fadeOut()
-        ToastAnimation.SCALE -> scaleOut(tween(160), targetScale = .9f) + fadeOut()
-        ToastAnimation.SPRING -> scaleOut(tween(220), targetScale = .86f) + fadeOut()
+        ToastKitAnimation.FADE -> fadeOut(tween(160))
+        ToastKitAnimation.SLIDE -> slideOutVertically(tween(220)) { if (toast.position == ToastKitPosition.BOTTOM) it else -it } + fadeOut()
+        ToastKitAnimation.SCALE -> scaleOut(tween(160), targetScale = .9f) + fadeOut()
+        ToastKitAnimation.SPRING -> scaleOut(tween(220), targetScale = .86f) + fadeOut()
     }
-    AnimatedVisibility(visible = toast.id !in ToastManager.exiting, enter = enter, exit = exit) {
+    AnimatedVisibility(visible = toast.id !in ToastKitManager.exiting, enter = enter, exit = exit) {
         Row(
             modifier = Modifier.padding(vertical = 4.dp).widthIn(max = 560.dp).fillMaxWidth()
                 .graphicsLayer { translationX = displayedX; translationY = displayedY; alpha = (1f - (abs(displayedX) + abs(displayedY)) / 700f).coerceIn(.35f, 1f) }
@@ -111,10 +111,10 @@ private fun ToastCard(toast: ToastConfiguration) {
             }
             toast.action?.let { action ->
                 Text(action.label, color = toast.style.actionColor, fontWeight = FontWeight.Bold,
-                    modifier = Modifier.pointerInput(action.id) { detectTapGestures { ToastManager.action(toast.id, action.id) } })
+                    modifier = Modifier.pointerInput(action.id) { detectTapGestures { ToastKitManager.action(toast.id, action.id) } })
             }
             if (toast.dismissible) {
-                Box(Modifier.size(32.dp).pointerInput(toast.id) { detectTapGestures { ToastManager.dismiss(toast.id) } }, contentAlignment = Alignment.Center) {
+                Box(Modifier.size(32.dp).pointerInput(toast.id) { detectTapGestures { ToastKitManager.dismiss(toast.id) } }, contentAlignment = Alignment.Center) {
                     MaterialIcon("close", "Dismiss", size = 20.dp, tint = toast.style.foreground)
                 }
             }

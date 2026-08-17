@@ -3,29 +3,29 @@ package com.victorycodedev.plugins.toastkit.manager
 import android.os.Handler
 import android.os.Looper
 import androidx.compose.runtime.mutableStateListOf
-import com.victorycodedev.plugins.toastkit.bridge.BridgeNormalizer
-import com.victorycodedev.plugins.toastkit.bridge.NativeEventDispatcher
+import com.victorycodedev.plugins.toastkit.bridge.ToastKitBridgeNormalizer
+import com.victorycodedev.plugins.toastkit.bridge.ToastKitEventDispatcher
 import com.victorycodedev.plugins.toastkit.model.*
 
-internal object ToastManager {
-    val visible = mutableStateListOf<ToastConfiguration>()
-    val rendered = mutableStateListOf<ToastConfiguration>()
+internal object ToastKitManager {
+    val visible = mutableStateListOf<ToastKitConfiguration>()
+    val rendered = mutableStateListOf<ToastKitConfiguration>()
     val exiting = mutableStateListOf<String>()
-    private val states = linkedMapOf<String, ToastState>()
+    private val states = linkedMapOf<String, ToastKitState>()
     private val waiting = ArrayDeque<String>()
     private val timers = mutableMapOf<String, Runnable>()
     private val main = Handler(Looper.getMainLooper())
 
-    fun show(configuration: ToastConfiguration) = onMain {
+    fun show(configuration: ToastKitConfiguration) = onMain {
         if (states.containsKey(configuration.id)) return@onMain
-        states[configuration.id] = ToastState(configuration)
+        states[configuration.id] = ToastKitState(configuration)
         if (canAdmit(configuration)) admit(configuration.id) else waiting.addLast(configuration.id)
     }
 
     fun update(id: String, changes: Map<String, Any>) = onMain {
         val state = states[id] ?: return@onMain
         if (state.terminated) return@onMain
-        val updated = try { BridgeNormalizer.applyChanges(state.configuration, changes) } catch (_: IllegalArgumentException) { return@onMain }
+        val updated = try { ToastKitBridgeNormalizer.applyChanges(state.configuration, changes) } catch (_: IllegalArgumentException) { return@onMain }
         states[id] = state.copy(configuration = updated)
         if (state.visible) {
             replaceVisible(updated)
@@ -44,16 +44,16 @@ internal object ToastManager {
     fun action(id: String, actionId: String) = onMain {
         val state = states[id] ?: return@onMain
         if (state.terminated) return@onMain
-        NativeEventDispatcher.action(id, actionId)
+        ToastKitEventDispatcher.action(id, actionId)
         terminate(id, "action")
     }
 
-    private fun canAdmit(configuration: ToastConfiguration): Boolean {
+    private fun canAdmit(configuration: ToastKitConfiguration): Boolean {
         val current = visible.mapNotNull { states[it.id]?.configuration }
         return when (configuration.strategy) {
-            ToastStrategy.QUEUE -> current.isEmpty()
-            ToastStrategy.STACK -> current.none { it.strategy == ToastStrategy.QUEUE } &&
-                current.count { it.strategy == ToastStrategy.STACK } < configuration.maxVisible
+            ToastKitStrategy.QUEUE -> current.isEmpty()
+            ToastKitStrategy.STACK -> current.none { it.strategy == ToastKitStrategy.QUEUE } &&
+                current.count { it.strategy == ToastKitStrategy.STACK } < configuration.maxVisible
         }
     }
 
@@ -64,10 +64,10 @@ internal object ToastManager {
         visible.add(state.configuration)
         rendered.add(state.configuration)
         schedule(state.configuration)
-        NativeEventDispatcher.shown(id)
+        ToastKitEventDispatcher.shown(id)
     }
 
-    private fun schedule(configuration: ToastConfiguration) {
+    private fun schedule(configuration: ToastKitConfiguration) {
         timers.remove(configuration.id)?.let(main::removeCallbacks)
         val duration = configuration.durationMs ?: return
         val task = Runnable { terminate(configuration.id, "timeout") }
@@ -88,7 +88,7 @@ internal object ToastManager {
             exiting.remove(id)
         }, 260L)
         states.remove(id)
-        NativeEventDispatcher.dismissed(id, reason)
+        ToastKitEventDispatcher.dismissed(id, reason)
         if (promote) promote()
     }
 
@@ -109,7 +109,7 @@ internal object ToastManager {
         } while (progressed)
     }
 
-    private fun replaceVisible(configuration: ToastConfiguration) {
+    private fun replaceVisible(configuration: ToastKitConfiguration) {
         val index = visible.indexOfFirst { it.id == configuration.id }
         if (index >= 0) visible[index] = configuration
         val renderedIndex = rendered.indexOfFirst { it.id == configuration.id }

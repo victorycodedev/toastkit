@@ -12,12 +12,12 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
-import com.victorycodedev.plugins.toastkit.model.ToastPosition
-import com.victorycodedev.plugins.toastkit.bridge.NativeEventDispatcher
+import com.victorycodedev.plugins.toastkit.model.ToastKitPosition
+import com.victorycodedev.plugins.toastkit.bridge.ToastKitEventDispatcher
 import androidx.fragment.app.FragmentActivity
 import java.util.WeakHashMap
 
-internal object ToastHostInstaller : Application.ActivityLifecycleCallbacks {
+internal object ToastKitHostInstaller : Application.ActivityLifecycleCallbacks {
     private val attached = WeakHashMap<Activity, List<ComposeView>>()
     private var installed = false
 
@@ -28,7 +28,7 @@ internal object ToastHostInstaller : Application.ActivityLifecycleCallbacks {
     }
 
     override fun onActivityResumed(activity: Activity) {
-        (activity as? FragmentActivity)?.let(NativeEventDispatcher::bind)
+        (activity as? FragmentActivity)?.let(ToastKitEventDispatcher::bind)
         attach(activity)
     }
     override fun onActivityDestroyed(activity: Activity) { attached.remove(activity)?.forEach { (it.parent as? ViewGroup)?.removeView(it) } }
@@ -36,14 +36,14 @@ internal object ToastHostInstaller : Application.ActivityLifecycleCallbacks {
     private fun attach(activity: Activity) {
         if (attached.containsKey(activity) || activity !is ComponentActivity) return
         val decor = activity.window.decorView as? ViewGroup ?: return
-        val views = ToastPosition.entries.map { position ->
+        val views = ToastKitPosition.entries.map { position ->
             ComposeView(activity).apply {
                 setViewTreeLifecycleOwner(activity)
                 setViewTreeViewModelStoreOwner(activity)
                 setViewTreeSavedStateRegistryOwner(activity)
-                setContent { ToastHost(position) }
+                setContent { ToastKitHost(position) }
                 decor.addView(this, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                    gravity = when (position) { ToastPosition.TOP -> Gravity.TOP; ToastPosition.CENTER -> Gravity.CENTER; ToastPosition.BOTTOM -> Gravity.BOTTOM }
+                    gravity = when (position) { ToastKitPosition.TOP -> Gravity.TOP; ToastKitPosition.CENTER -> Gravity.CENTER; ToastKitPosition.BOTTOM -> Gravity.BOTTOM }
                 })
             }
         }

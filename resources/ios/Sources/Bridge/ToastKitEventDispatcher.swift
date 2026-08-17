@@ -1,6 +1,6 @@
 import Foundation
 
-enum NativeEventDispatcher {
+enum ToastKitEventDispatcher {
     private static let shownEvent = "Victorycodedev\\ToastKit\\Events\\ToastShown"
     private static let dismissedEvent = "Victorycodedev\\ToastKit\\Events\\ToastDismissed"
     private static let actionEvent = "Victorycodedev\\ToastKit\\Events\\ToastActionPressed"

@@ -2,13 +2,13 @@ package com.victorycodedev.plugins.toastkit.model
 
 import androidx.compose.ui.graphics.Color
 
-internal enum class ToastPosition { TOP, CENTER, BOTTOM }
-internal enum class ToastAnimation { FADE, SLIDE, SCALE, SPRING }
-internal enum class ToastStrategy { QUEUE, STACK }
+internal enum class ToastKitPosition { TOP, CENTER, BOTTOM }
+internal enum class ToastKitAnimation { FADE, SLIDE, SCALE, SPRING }
+internal enum class ToastKitStrategy { QUEUE, STACK }
 
-internal data class ToastIcon(val name: String?, val android: String?)
-internal data class ToastAction(val id: String, val label: String)
-internal data class ToastStyle(
+internal data class ToastKitIcon(val name: String?, val android: String?)
+internal data class ToastKitAction(val id: String, val label: String)
+internal data class ToastKitStyle(
     val background: Color,
     val foreground: Color,
     val iconColor: Color,
@@ -18,25 +18,25 @@ internal data class ToastStyle(
     val shadow: Boolean,
 )
 
-internal data class ToastConfiguration(
+internal data class ToastKitConfiguration(
     val id: String,
     val message: String,
     val title: String?,
     val variant: String,
-    val icon: ToastIcon?,
-    val position: ToastPosition,
+    val icon: ToastKitIcon?,
+    val position: ToastKitPosition,
     val durationMs: Long?,
-    val animation: ToastAnimation,
+    val animation: ToastKitAnimation,
     val swipeToDismiss: Boolean,
     val dismissible: Boolean,
-    val action: ToastAction?,
-    val style: ToastStyle,
-    val strategy: ToastStrategy,
+    val action: ToastKitAction?,
+    val style: ToastKitStyle,
+    val strategy: ToastKitStrategy,
     val maxVisible: Int,
 )
 
-internal data class ToastState(
-    val configuration: ToastConfiguration,
+internal data class ToastKitState(
+    val configuration: ToastKitConfiguration,
     val visible: Boolean = false,
     val terminated: Boolean = false,
 )
