@@ -2,6 +2,7 @@ package com.victorycodedev.plugins.toastkit.bridge
 
 import androidx.compose.ui.graphics.Color
 import com.victorycodedev.plugins.toastkit.model.*
+import org.json.JSONObject
 
 internal class ToastKitInputException(message: String) : IllegalArgumentException(message)
 
@@ -29,12 +30,12 @@ internal object ToastKitBridgeNormalizer {
             val name = variant(it)
             next = next.copy(variant = name, style = variantStyle(name), icon = defaultIcon(name))
         }
-        changes["icon"]?.let { next = next.copy(icon = icon(it)) }
+        if (changes.containsKey("icon")) next = next.copy(icon = optionalValue(changes["icon"])?.let(::icon))
         changes["position"]?.let { next = next.copy(position = position(it)) }
         changes["animation"]?.let { next = next.copy(animation = animation(it)) }
         changes["swipe_to_dismiss"]?.let { next = next.copy(swipeToDismiss = boolean(it, "swipe_to_dismiss")) }
         changes["dismissible"]?.let { next = next.copy(dismissible = boolean(it, "dismissible")) }
-        if (changes.containsKey("action")) next = next.copy(action = changes["action"]?.let(::action))
+        if (changes.containsKey("action")) next = next.copy(action = optionalValue(changes["action"])?.let(::action))
         changes["strategy"]?.let { next = next.copy(strategy = strategy(it)) }
         changes["max_visible"]?.let { next = next.copy(maxVisible = positiveInt(it, "max_visible")) }
         changes["style"]?.let { next = next.copy(style = style(it, next.style)) }
@@ -43,7 +44,7 @@ internal object ToastKitBridgeNormalizer {
         val durationChanged = changes.containsKey("duration")
         if (persistentChanged || durationChanged) {
             val persistent = changes["persistent"]?.let { boolean(it, "persistent") } ?: false
-            val duration = changes["duration"]
+            val duration = optionalValue(changes["duration"])
             next = next.copy(durationMs = if (persistent) null else duration?.let { positiveLong(it, "duration") } ?: 3000L)
         }
         return next
@@ -56,13 +57,13 @@ internal object ToastKitBridgeNormalizer {
             message = requiredString(values, "message"),
             title = nullableString(values["title"], "title"),
             variant = variant(values["variant"] ?: "neutral"),
-            icon = values["icon"]?.let(::icon),
+            icon = optionalValue(values["icon"])?.let(::icon),
             position = position(values["position"] ?: "bottom"),
             durationMs = if (persistent) null else positiveLong(values["duration"] ?: 3000, "duration"),
-            animation = animation(values["animation"] ?: "spring"),
+            animation = animation(values["animation"] ?: "scale"),
             swipeToDismiss = values["swipe_to_dismiss"]?.let { boolean(it, "swipe_to_dismiss") } ?: true,
             dismissible = values["dismissible"]?.let { boolean(it, "dismissible") } ?: false,
-            action = values["action"]?.let(::action),
+            action = optionalValue(values["action"])?.let(::action),
             style = style(values["style"] ?: emptyMap<String, Any>(), variantStyle(values["variant"] as? String ?: "neutral")),
             strategy = strategy(values["strategy"] ?: "queue"),
             maxVisible = positiveInt(values["max_visible"] ?: 3, "max_visible"),
@@ -143,9 +144,11 @@ internal object ToastKitBridgeNormalizer {
         return text
     }
     private fun nullableString(value: Any?, name: String): String? {
-        if (value == null) return null
+        if (isNull(value)) return null
         return nonEmptyString(value, name)
     }
+    private fun optionalValue(value: Any?): Any? = if (isNull(value)) null else value
+    private fun isNull(value: Any?): Boolean = value == null || value === JSONObject.NULL
     private fun boolean(value: Any, name: String) = value as? Boolean ?: throw ToastKitInputException("$name must be boolean")
     private fun positiveLong(value: Any, name: String): Long {
         val result = (value as? Number)?.toLong() ?: throw ToastKitInputException("$name must be numeric")

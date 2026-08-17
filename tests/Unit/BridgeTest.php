@@ -15,7 +15,7 @@ it('sends the show contract with full defaults', function () {
             'position' => 'bottom',
             'duration' => 3000,
             'persistent' => false,
-            'animation' => 'spring',
+            'animation' => 'scale',
             'swipe_to_dismiss' => true,
             'dismissible' => false,
             'strategy' => 'queue',

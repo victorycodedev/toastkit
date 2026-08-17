@@ -60,7 +60,7 @@ enum ToastKitBridgeNormalizer {
             icon: try values["icon"].map(icon),
             position: try enumValue(values["position"] ?? "bottom", "position"),
             durationMilliseconds: persistent ? nil : try positiveInt(values["duration"] ?? 3000, "duration"),
-            animation: try enumValue(values["animation"] ?? "spring", "animation"),
+            animation: try enumValue(values["animation"] ?? "scale", "animation"),
             swipeToDismiss: try values["swipe_to_dismiss"].map { try boolean($0, "swipe_to_dismiss") } ?? true,
             dismissible: try values["dismissible"].map { try boolean($0, "dismissible") } ?? false,
             action: try values["action"].map(action),

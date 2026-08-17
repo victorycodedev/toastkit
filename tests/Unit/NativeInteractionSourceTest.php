@@ -24,3 +24,23 @@ it('routes iOS touches only inside measured toast frames', function () {
         ->and($installer)->toContain('containsInteractivePoint(point)')
         ->and($manager)->toContain('interactiveFrames.values.contains');
 });
+
+it('treats Android bridge JSON nulls as absent optional values', function () {
+    $normalizer = nativeSource('resources/android/src/com/victorycodedev/plugins/toastkit/bridge/ToastKitBridgeNormalizer.kt');
+
+    expect($normalizer)
+        ->toContain('value === JSONObject.NULL')
+        ->toContain('optionalValue(values["icon"])')
+        ->toContain('optionalValue(values["action"])');
+});
+
+it('drives native toast enter and exit transitions explicitly', function () {
+    $androidHost = nativeSource('resources/android/src/com/victorycodedev/plugins/toastkit/presentation/ToastKitHost.kt');
+    $iosManager = nativeSource('resources/ios/Sources/Manager/ToastKitManager.swift');
+
+    expect($androidHost)
+        ->toContain('MutableTransitionState(false)')
+        ->toContain('visibility.targetState = shouldBeVisible')
+        ->and($iosManager)
+        ->toContain('withAnimation(animation(for: state.configuration))');
+});

@@ -563,7 +563,7 @@ Native::test(ProfileScreen::class)
 | `position` | `bottom` |
 | `duration` | `3000` ms |
 | `persistent` | `false` |
-| `animation` | `spring` |
+| `animation` | `scale` |
 | `swipe_to_dismiss` | `true` |
 | `dismissible` | `false` |
 | `strategy` | `queue` |

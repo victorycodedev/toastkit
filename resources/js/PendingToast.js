@@ -60,7 +60,7 @@ export class PendingToast extends PendingToastBase {
       position: "bottom",
       duration: 3000,
       persistent: false,
-      animation: "spring",
+      animation: "scale",
       swipe_to_dismiss: true,
       dismissible: false,
       style: { corner_radius: 16, padding: 16, shadow: true },

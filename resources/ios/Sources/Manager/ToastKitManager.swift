@@ -64,7 +64,9 @@ final class ToastKitManager: ObservableObject {
         guard var state = states[id], !state.terminated, !state.visible else { return }
         state.visible = true
         states[id] = state
-        visible.append(state.configuration)
+        withAnimation(animation(for: state.configuration)) {
+            visible.append(state.configuration)
+        }
         schedule(state.configuration)
         ToastKitEventDispatcher.shown(id)
     }

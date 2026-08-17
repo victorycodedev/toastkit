@@ -4,6 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -90,9 +91,12 @@ private fun ToastKitCard(toast: ToastKitConfiguration) {
         ToastKitAnimation.FADE -> fadeOut(tween(160))
         ToastKitAnimation.SLIDE -> slideOutVertically(tween(220)) { if (toast.position == ToastKitPosition.BOTTOM) it else -it } + fadeOut()
         ToastKitAnimation.SCALE -> scaleOut(tween(160), targetScale = .9f) + fadeOut()
-        ToastKitAnimation.SPRING -> scaleOut(tween(220), targetScale = .86f) + fadeOut()
+        ToastKitAnimation.SPRING -> scaleOut(spring(), targetScale = .86f) + fadeOut(tween(220))
     }
-    AnimatedVisibility(visible = toast.id !in ToastKitManager.exiting, enter = enter, exit = exit) {
+    val visibility = remember(toast.id) { MutableTransitionState(false) }
+    val shouldBeVisible = toast.id !in ToastKitManager.exiting
+    LaunchedEffect(shouldBeVisible) { visibility.targetState = shouldBeVisible }
+    AnimatedVisibility(visibleState = visibility, enter = enter, exit = exit) {
         Row(
             modifier = Modifier.padding(vertical = 4.dp).widthIn(max = 560.dp).fillMaxWidth()
                 .graphicsLayer { translationX = displayedX; translationY = displayedY; alpha = (1f - (abs(displayedX) + abs(displayedY)) / 700f).coerceIn(.35f, 1f) }
