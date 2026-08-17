@@ -2,35 +2,20 @@
 
 Rich, customizable native toast notifications for [NativePHP Mobile](https://nativephp.com/docs/mobile).
 
-ToastKit gives your NativePHP app first-class native toasts — success, error, warning, info, and neutral variants with titles, icons, custom styling, swipe-to-dismiss, action buttons, and full queue/stack management. Toasts are rendered by native Jetpack Compose (Android) and SwiftUI (iOS) overlays, so they look and feel like part of the operating system.
+ToastKit renders toasts as native overlays — Jetpack Compose on Android, SwiftUI on iOS — so they look and feel like part of the operating system. No Blade toast component is required.
 
 ## Feature Highlights
 
-- **Five variants** — `success`, `error`, `warning`, `info`, and `neutral` with sensible native defaults.
-- **Rich content** — title, message, and NativePHP-compatible icons with per-platform overrides.
-- **Full positioning** — `top`, `center`, or `bottom`, with safe-area handling.
-- **Timing** — timed toasts with a custom duration, or persistent toasts that stay until dismissed.
-- **Animations** — native `fade`, `slide`, `scale`, and `spring` animations.
-- **Gestures** — swipe-to-dismiss that springs back on a failed swipe.
-- **Actions** — a native action button with its own ID and pressed event.
-- **Close control** — an optional visible dismiss button.
-- **Custom styling** — background, foreground, icon, and action colors, corner radius, padding, and shadow.
+- **Five variants** — `success`, `error`, `warning`, `info`, and `neutral`.
+- **Rich content** — title, message, and icons with per-platform overrides.
+- **Full customization** — position, duration, animation, swipe-to-dismiss, close control, colors, corner radius, padding, and shadow.
+- **Action buttons** — a native action button with its own ID and pressed event.
 - **Queue strategy** — FIFO, one toast at a time.
 - **Stack strategy** — up to `maxVisible` toasts on screen with FIFO overflow.
-- **Live updates** — change a visible or queued toast's message, variant, icon, style, or timer.
-- **Dismissal** — dismiss by ID or dismiss everything, idempotently.
+- **Live updates** — change a visible or queued toast's message, variant, icon, style, or timer without creating a new toast.
+- **Idempotent dismissal** — dismiss by ID or dismiss everything.
 - **Events** — `ToastShown`, `ToastDismissed`, and `ToastActionPressed`.
-- **Test vocabulary** — FakeBridge macros for asserting on toast traffic in your own test suite.
-
-## Compatibility
-
-| Requirement | Version |
-| --- | --- |
-| PHP | 8.3+ |
-| NativePHP Mobile | 4.1+ |
-| Android | API 29+ (Android 10) |
-| iOS | 18.0+ |
-| Platforms | Android and iOS |
+- **JavaScript API** — a fluent `Toast` API for web-facing apps.
 
 ## Installation
 
@@ -40,40 +25,23 @@ Install the package with Composer:
 composer require victorycodedev/toastkit
 ```
 
-ToastKit's PHP service provider is auto-discovered by Laravel. The native code must be registered explicitly before it is compiled into your app.
-
-### Registering the plugin
-
-First, publish the `NativeServiceProvider` (only needed once per app):
+The service provider is auto-discovered by Laravel. Register the native code (only needed once per app):
 
 ```bash
 php artisan vendor:publish --tag=nativephp-plugins-provider
-```
-
-Then register ToastKit:
-
-```bash
 php artisan native:plugin:register victorycodedev/toastkit
 ```
 
-### Verify installation
+Verify it is registered:
 
 ```bash
 php artisan native:plugin:list
 ```
 
-### Rebuild your app
-
-Native code changes require a rebuild because Swift and Kotlin are compiled into your app:
+Then rebuild your app, since Swift and Kotlin are compiled into it:
 
 ```bash
 php artisan native:run
-```
-
-If you change ToastKit's native code or manifest while developing, force a fresh install of the native projects:
-
-```bash
-php artisan native:install --force
 ```
 
 ## Quick Start
@@ -84,11 +52,9 @@ use Victorycodedev\ToastKit\Facades\Toast;
 Toast::success('Changes saved')->show();
 ```
 
-A richer example:
+ToastKit is fully customizable:
 
 ```php
-use Victorycodedev\ToastKit\Facades\Toast;
-
 Toast::make('Profile updated')
     ->title('Success')
     ->success()
@@ -100,15 +66,440 @@ Toast::make('Profile updated')
     ->show();
 ```
 
-## PHP Usage
+ToastKit is controlled from PHP and renders as a native overlay — you never add a Blade toast component.
 
-ToastKit is controlled entirely from PHP. The native overlay renders independently.
+## Basic Toasts
 
-### The `Toast` facade
+```php
+Toast::success('Saved')->show();
+Toast::error('Something went wrong')->show();
+Toast::warning('Storage almost full')->show();
+Toast::info('Downloading...')->show();
+Toast::neutral('Copied')->show();
+```
+
+Each variant applies sensible native defaults, which any explicit style option overrides.
+
+## Custom Toasts
+
+```php
+Toast::make('Download complete')
+    ->title('invoice.pdf')
+    ->success()
+    ->icon('check')
+    ->position('top')
+    ->background('#111827')
+    ->foreground('#FFFFFF')
+    ->iconColor('#22C55E')
+    ->cornerRadius(18)
+    ->padding(16)
+    ->shadow()
+    ->animation('spring')
+    ->swipeToDismiss()
+    ->duration(3000)
+    ->show();
+```
+
+Supported options include `title()`, `icon()`, `position()`, `duration()`, `persistent()`, `animation()`, `swipeToDismiss()`, `dismissible()`, `action()`, and the styling methods `background()`, `foreground()`, `iconColor()`, `actionColor()`, `cornerRadius()`, `padding()`, and `shadow()`. See the [API Reference](#api-reference) for the full list.
+
+## Updating Toasts
+
+`update()` changes a visible or queued toast in place, keeping the same ID:
+
+```php
+$id = Toast::info('Uploading file...')
+    ->persistent()
+    ->show();
+
+// Later...
+Toast::update($id)
+    ->message('Upload complete')
+    ->success()
+    ->icon('check')
+    ->duration(2000)
+    ->show();
+```
+
+Updates are sparse:
+
+- The toast keeps its original ID.
+- Only properties you explicitly set change; everything else is preserved.
+- A persistent toast becomes timed once you supply a `duration()`.
+
+A message-only update is ideal for live progress:
+
+```php
+Toast::update($id)
+    ->message('Uploading 50%...')
+    ->show();
+```
+
+## Dismissing Toasts
+
+```php
+$id = Toast::info('Syncing...')
+    ->persistent()
+    ->show();
+
+Toast::dismiss($id);
+```
+
+Dismiss everything at once:
+
+```php
+Toast::dismissAll();
+```
+
+Dismissals are idempotent — dismissing an ID that is already gone is a no-op.
+
+## Actions & Events
+
+Add a native action button and handle its press:
+
+```php
+use Native\Mobile\Attributes\On;
+use Victorycodedev\ToastKit\Events\ToastActionPressed;
+
+Toast::error('Connection lost')
+    ->action(
+        label: 'Retry',
+        id: 'retry',
+    )
+    ->show();
+
+#[On(ToastActionPressed::class)]
+public function handleToastAction(
+    string $toastId,
+    string $actionId,
+): void {
+    if ($actionId === 'retry') {
+        $this->retry();
+    }
+}
+```
+
+Pressing an action emits `ToastActionPressed` and dismisses the toast.
+
+The other events follow the same pattern:
+
+```php
+use Native\Mobile\Attributes\On;
+use Victorycodedev\ToastKit\Events\ToastShown;
+use Victorycodedev\ToastKit\Events\ToastDismissed;
+
+#[On(ToastShown::class)]
+public function handleToastShown(string $toastId): void
+{
+    // The toast is now visible.
+}
+
+#[On(ToastDismissed::class)]
+public function handleToastDismissed(string $toastId, string $reason): void
+{
+    // $reason is one of: timeout, swipe, programmatic, action.
+}
+```
+
+See [Events](#events) for the full event reference.
+
+## Queue & Stack
+
+The default strategy is a FIFO **queue** — one toast at a time:
+
+```php
+Toast::info('First')->queue()->show();
+Toast::info('Second')->queue()->show();
+```
+
+Each toast appears after the previous one finishes. Its duration only begins once it becomes visible.
+
+The **stack** strategy shows up to `maxVisible` toasts at once:
+
+```php
+Toast::success('Saved')
+    ->stack()
+    ->maxVisible(3)
+    ->show();
+```
+
+When the stack is full, additional toasts wait and are admitted in FIFO order as existing toasts dismiss.
+
+## JavaScript Usage
+
+ToastKit ships a JavaScript library in `resources/js/` (Composer-installed at `vendor/victorycodedev/toastkit/resources/js/`). There is no published npm package — copy the files into your app or bundle them with your build tool.
+
+```js
+import { Toast } from './resources/js';
+
+Toast.success('Saved').show();
+```
+
+Updates mirror the PHP API:
+
+```js
+const id = await Toast.info('Uploading...')
+    .persistent()
+    .show();
+
+await Toast.update(id)
+    .message('Upload complete')
+    .success()
+    .duration(2000)
+    .show();
+
+await Toast.dismiss(id);
+await Toast.dismissAll();
+```
+
+Raw bridge functions are also exported:
+
+```js
+import { Show, Update, Dismiss, DismissAll } from './resources/js';
+
+await Show({ id: 'one', message: 'Hello' });
+await Update('one', { message: 'Done' });
+await Dismiss('one');
+await DismissAll();
+```
+
+## Complete NativeComponent Example
+
+```php
+<?php
+
+namespace App\Screens;
+
+use Native\Mobile\Attributes\On;
+use Native\Mobile\Edge\NativeComponent;
+use Victorycodedev\ToastKit\Events\ToastActionPressed;
+use Victorycodedev\ToastKit\Facades\Toast;
+
+class ToastDemoScreen extends NativeComponent
+{
+    public ?string $toastId = null;
+
+    public function startUpload(): void
+    {
+        $this->toastId = Toast::info('Uploading...')
+            ->persistent()
+            ->show();
+    }
+
+    public function updateUpload(): void
+    {
+        if (! $this->toastId) {
+            return;
+        }
+
+        Toast::update($this->toastId)
+            ->message('Uploading 50%...')
+            ->show();
+    }
+
+    public function completeUpload(): void
+    {
+        if (! $this->toastId) {
+            return;
+        }
+
+        Toast::update($this->toastId)
+            ->message('Upload complete')
+            ->success()
+            ->icon('check')
+            ->duration(2000)
+            ->show();
+    }
+
+    public function dismissToast(): void
+    {
+        if ($this->toastId) {
+            Toast::dismiss($this->toastId);
+        }
+    }
+
+    #[On(ToastActionPressed::class)]
+    public function handleToastAction(string $toastId, string $actionId): void
+    {
+        if ($actionId === 'retry') {
+            $this->startUpload();
+        }
+    }
+}
+```
+
+Blade screen using native components:
+
+```blade
+<native:scroll-view>
+    <native:column>
+        <native:text>ToastKit Demo</native:text>
+
+        <native:button
+            label="Start"
+            @press="startUpload"
+        />
+
+        <native:button
+            label="Update"
+            @press="updateUpload"
+        />
+
+        <native:button
+            label="Complete"
+            @press="completeUpload"
+        />
+
+        <native:button
+            label="Dismiss"
+            @press="dismissToast"
+        />
+    </native:column>
+</native:scroll-view>
+```
+
+## Real-world Example with NativePHP Fetch
+
+ToastKit pairs naturally with a Fetch package for upload/download progress. Fetch is **not** a ToastKit dependency — this is an optional integration example.
+
+```php
+$toastId = Toast::info('Downloading...')
+    ->persistent()
+    ->show();
+
+$request = Fetch::timeout(120);
+
+$this->requestId = $request->id();
+
+$request->download(/* ... */);
+```
+
+Then handle the Fetch events to drive live toast updates:
+
+```php
+use Native\Mobile\Attributes\On;
+use Victorycodedev\ToastKit\Facades\Toast;
+
+#[On(FetchDownloadProgress::class)]
+public function onDownloadProgress(
+    string $requestId,
+    int $bytesReceived,
+    ?int $bytesTotal,
+    ?float $progress,
+): void {
+    if ($progress === null || ! $this->toastId) {
+        return;
+    }
+
+    Toast::update($this->toastId)
+        ->message(
+            'Downloading '.(int) round($progress * 100).'%...'
+        )
+        ->show();
+}
+
+#[On(FetchDownloadCompleted::class)]
+public function onDownloadCompleted(): void
+{
+    Toast::update($this->toastId)
+        ->message('Download complete')
+        ->success()
+        ->icon('check')
+        ->duration(2000)
+        ->show();
+}
+
+#[On(FetchRequestFailed::class)]
+public function onDownloadFailed(): void
+{
+    Toast::update($this->toastId)
+        ->message('Download failed')
+        ->error()
+        ->duration(3000)
+        ->show();
+}
+```
+
+Refer to your Fetch package's documentation for its exact API surface.
+
+## Events
+
+ToastKit dispatches three events. Listen with NativePHP's `#[On]` attribute:
+
+| Event | Payload |
+| --- | --- |
+| `Victorycodedev\ToastKit\Events\ToastShown` | `toastId` (string) |
+| `Victorycodedev\ToastKit\Events\ToastDismissed` | `toastId` (string), `reason` (string) |
+| `Victorycodedev\ToastKit\Events\ToastActionPressed` | `toastId` (string), `actionId` (string) |
+
+```php
+use Native\Mobile\Attributes\On;
+use Victorycodedev\ToastKit\Events\ToastDismissed;
+
+#[On(ToastDismissed::class)]
+public function handleToastDismissed(string $toastId, string $reason): void
+{
+    // $reason is one of: timeout, swipe, programmatic, action.
+}
+```
+
+`ToastDismissReason` declares `timeout`, `swipe`, `programmatic`, `action`, and `replaced`; the native renderers currently emit `timeout`, `swipe`, `programmatic`, and `action`.
+
+## Testing
+
+Run the PHP suite:
+
+```bash
+./vendor/bin/pest
+```
+
+Run the JavaScript suite:
+
+```bash
+node --test resources/js/tests/*.test.js
+```
+
+ToastKit registers `FakeBridge` macros so your own tests can assert on toast traffic using domain vocabulary — no emulator or device required:
+
+```php
+use Native\Mobile\Testing\Native;
+
+Native::test(ProfileScreen::class)
+    ->call('save')
+    ->assertToastShownWithMessage('Profile updated');
+```
+
+Available macros:
+
+| Macro | Description |
+| --- | --- |
+| `assertToastShown(?callable $filter = null)` | A `ToastKit.Show` call was made. |
+| `assertToastShownWithMessage(string $message)` | A toast with the given message was shown. |
+| `assertToastShownWithId(string $id)` | A toast with the given ID was shown. |
+| `assertToastUpdated(string $id, ?callable $changesFilter = null)` | A toast was updated with the given ID. |
+| `assertToastDismissed(string $id)` | A toast with the given ID was dismissed. |
+| `assertAllToastsDismissed()` | `ToastKit.DismissAll` was called. |
+
+To test how a screen reacts to a ToastKit event, deliver the event yourself with NativePHP's `emitNative()`:
+
+```php
+use Native\Mobile\Testing\Native;
+use Victorycodedev\ToastKit\Events\ToastActionPressed;
+
+Native::test(ProfileScreen::class)
+    ->emitNative(ToastActionPressed::class, [
+        'toastId' => 'one',
+        'actionId' => 'retry',
+    ])
+    ->assertSet('retried', true);
+```
+
+## API Reference
+
+### `Toast` facade
 
 | Method | Description |
 | --- | --- |
-| `Toast::make(?string $message = null)` | Start building a toast with an optional message. |
+| `Toast::make(?string $message = null)` | Start building a toast. |
 | `Toast::success(string $message)` | A success-variant toast. |
 | `Toast::error(string $message)` | An error-variant toast. |
 | `Toast::warning(string $message)` | A warning-variant toast. |
@@ -118,11 +509,9 @@ ToastKit is controlled entirely from PHP. The native overlay renders independent
 | `Toast::dismiss(string $id)` | Dismiss a toast by ID. |
 | `Toast::dismissAll()` | Dismiss all active and queued toasts. |
 
-Every shortcut returns a `PendingToast`. Call `->show()` to actually display it. `show()` returns the toast's ID (a UUID by default, or a custom ID you supply).
+### `PendingToast` builder
 
-### The `PendingToast` builder
-
-`make()` and the variant shortcuts return a `PendingToast`. All methods are chainable and `show()` sends the toast to the native bridge.
+`make()` and the variant shortcuts return a `PendingToast`. All methods are chainable; `show()` sends the toast to the native bridge and returns its ID (a UUID by default, or a custom ID from `id()`).
 
 | Method | Description |
 | --- | --- |
@@ -152,517 +541,9 @@ Every shortcut returns a `PendingToast`. Call `->show()` to actually display it.
 | `maxVisible(int $count)` | Set the maximum visible stack size. |
 | `show()` | Send the toast to the native bridge and return its ID. |
 
-### The `PendingToastUpdate` builder
+### `PendingToastUpdate` builder
 
-`Toast::update($id)` returns a `PendingToastUpdate`. It exposes the same configuration methods as `PendingToast` (except `id()`, since the ID is fixed) and a `show()` method.
-
-Updates are **sparse**: only the properties you explicitly set are sent to the native side. Everything else is preserved.
-
-## Variants
-
-Each variant is a shortcut that applies native defaults:
-
-```php
-Toast::success('Saved')->show();
-Toast::error('Something went wrong')->show();
-Toast::warning('Storage almost full')->show();
-Toast::info('Downloading...')->show();
-Toast::neutral('Copied')->show();
-```
-
-Variant styles are just defaults — any explicit style option you set overrides them:
-
-```php
-Toast::success('Saved')
-    ->icon('star')
-    ->background('#111827')
-    ->show();
-```
-
-## Content
-
-```php
-Toast::make('Your files are ready')
-    ->title('Export complete')
-    ->show();
-```
-
-`title()` accepts `null` to clear a title. Messages must be non-empty.
-
-## Icons
-
-ToastKit passes NativePHP logical icon names through to the native renderers:
-
-```php
-Toast::make('Saved')->icon('check')->show();
-```
-
-- iOS resolves logical names to SF Symbols.
-- Android resolves them through NativePHP's Material icon support.
-
-You can override per platform when you need a precise native glyph:
-
-```php
-Toast::make('Saved')
-    ->icon('check', ios: 'checkmark.circle.fill', android: 'done')
-    ->show();
-```
-
-Unknown logical names follow the host's fallback behavior. Logical names are preferred because they work across both platforms.
-
-## Positioning
-
-```php
-Toast::make('Hello')->position('top')->show();
-Toast::make('Hello')->position('center')->show();
-Toast::make('Hello')->position('bottom')->show();
-```
-
-The default is `bottom`. Toasts respect safe areas (status bar on Android, navigation bar, and the iOS home indicator) so they never sit under a cutout or system gesture area.
-
-## Duration & Persistent Toasts
-
-Timed:
-
-```php
-Toast::make('Hello')->duration(5000)->show();
-```
-
-Persistent:
-
-```php
-$id = Toast::info('Uploading...')->persistent()->show();
-```
-
-The default duration is `3000` ms. A persistent toast has no timeout and stays until dismissed or updated.
-
-Queue waiting time does **not** consume the duration — the timer only begins when a toast becomes visible.
-
-## Animations
-
-```php
-Toast::make('Hello')->animation('fade')->show();
-Toast::make('Hello')->animation('slide')->show();
-Toast::make('Hello')->animation('scale')->show();
-Toast::make('Hello')->animation('spring')->show();
-```
-
-The default is `spring`. Animations are entirely native. When the user enables reduced motion (or disables system animations on Android), ToastKit falls back to a simple fade.
-
-## Swipe to Dismiss
-
-```php
-Toast::make('Swipe me')->swipeToDismiss()->show();
-```
-
-Swipe is enabled by default. A top toast swipes upward, a bottom toast swipes downward, and a center toast swipes horizontally. A failed swipe springs back; a successful swipe emits `ToastDismissed` with reason `swipe`.
-
-## Action Buttons
-
-```php
-Toast::error('Connection lost')
-    ->action(
-        label: 'Retry',
-        id: 'retry',
-    )
-    ->show();
-```
-
-Handle the press with a native event listener:
-
-```php
-use Native\Mobile\Attributes\OnNative;
-use Victorycodedev\ToastKit\Events\ToastActionPressed;
-
-#[OnNative(ToastActionPressed::class)]
-public function handleToastAction(
-    string $toastId,
-    string $actionId,
-): void {
-    if ($actionId === 'retry') {
-        $this->retry();
-    }
-}
-```
-
-Actions are native buttons — never pass PHP closures to `action()`. Pressing an action also dismisses the toast and emits `ToastDismissed` with reason `action`.
-
-## Dismissible / Close Control
-
-```php
-Toast::make('Dismiss me')->dismissible()->show();
-```
-
-`dismissible()` shows a visible close control (an "x") on the toast. It is independent of `swipeToDismiss()` — you can enable either, both, or neither.
-
-## Custom Styling
-
-```php
-Toast::make('Custom toast')
-    ->background('#111827')
-    ->foreground('#FFFFFF')
-    ->icon('star')
-    ->iconColor('#FBBF24')
-    ->actionColor('#60A5FA')
-    ->cornerRadius(18)
-    ->padding(16)
-    ->shadow()
-    ->show();
-```
-
-Colors accept the following hexadecimal formats and are normalized to uppercase:
-
-- `#RGB`
-- `#RRGGBB`
-- `#AARRGGBB` (alpha is the leading byte, i.e. `#FFRRGGBB`)
-
-## Queue Strategy
-
-The default strategy is `queue` — one toast on screen at a time, FIFO:
-
-```php
-Toast::info('First')->queue()->show();
-Toast::info('Second')->queue()->show();
-Toast::info('Third')->queue()->show();
-```
-
-Each toast appears after the previous one finishes. Timers start only when a toast becomes visible.
-
-## Stack Strategy
-
-```php
-Toast::success('Saved A')
-    ->stack()
-    ->maxVisible(3)
-    ->show();
-```
-
-With `stack`, up to `maxVisible` toasts appear on screen at once. The default `maxVisible` is `3`. When the stack is full, additional toasts wait in FIFO order and are admitted as existing toasts dismiss.
-
-A queue toast and a stack group never compete on screen simultaneously.
-
-## Updating Toasts
-
-Update a visible or queued toast by its ID:
-
-```php
-$id = Toast::info('Uploading...')
-    ->persistent()
-    ->show();
-
-// ...later, when the upload finishes:
-
-Toast::update($id)
-    ->message('Upload complete')
-    ->success()
-    ->icon('check')
-    ->duration(2000)
-    ->show();
-```
-
-Updates are **sparse** — only properties you explicitly supply change. Everything else is preserved.
-
-Timer behavior on update:
-
-- No timing fields changed → the existing deadline is preserved.
-- `duration()` changed → a new timer starts from the update.
-- `persistent()` → `duration()` → the toast becomes timed and a timer starts from the update.
-- `duration()` → `persistent()` → the timer is cancelled and the toast becomes persistent.
-
-```php
-Toast::update($id)->variant(ToastVariant::Error)->show();
-Toast::update($id)->icon('check')->iconColor('#86EFAC')->show();
-Toast::update($id)->background('#1F2937')->foreground('#FFFFFF')->show();
-```
-
-## Dismissing Toasts
-
-```php
-Toast::dismiss($id);
-
-Toast::dismissAll();
-```
-
-Dismissals are idempotent — dismissing an ID that is already gone is a no-op. `dismissAll()` clears both active and queued toasts.
-
-## Events
-
-ToastKit dispatches three events. Listen with NativePHP's `#[OnNative]` attribute.
-
-### `ToastShown`
-
-Fired when a toast becomes visible.
-
-```php
-use Native\Mobile\Attributes\OnNative;
-use Victorycodedev\ToastKit\Events\ToastShown;
-
-#[OnNative(ToastShown::class)]
-public function handleToastShown(string $toastId): void
-{
-    // $toastId is now visible
-}
-```
-
-### `ToastDismissed`
-
-Fired when a toast is dismissed. Carries the toast ID and a reason.
-
-```php
-use Native\Mobile\Attributes\OnNative;
-use Victorycodedev\ToastKit\Events\ToastDismissed;
-
-#[OnNative(ToastDismissed::class)]
-public function handleToastDismissed(string $toastId, string $reason): void
-{
-    if ($reason === 'swipe') {
-        // user swiped it away
-    }
-}
-```
-
-Valid reasons (see `ToastDismissReason`): `timeout`, `swipe`, `programmatic`, `action`, `replaced`. The current native renderers emit `timeout`, `swipe`, `programmatic`, and `action`; `replaced` is declared for future use.
-
-### `ToastActionPressed`
-
-Fired when a toast action button is pressed.
-
-```php
-use Native\Mobile\Attributes\OnNative;
-use Victorycodedev\ToastKit\Events\ToastActionPressed;
-
-#[OnNative(ToastActionPressed::class)]
-public function handleToastAction(string $toastId, string $actionId): void
-{
-    // handle the action
-}
-```
-
-## Complete Component Example
-
-A profile screen that saves, shows progress, and handles a retry action.
-
-**PHP NativeComponent:**
-
-```php
-<?php
-
-namespace App\Livewire;
-
-use Livewire\Component;
-use Native\Mobile\Attributes\OnNative;
-use Victorycodedev\ToastKit\Events\ToastActionPressed;
-use Victorycodedev\ToastKit\Facades\Toast;
-
-class ProfileScreen extends Component
-{
-    public string $name = '';
-
-    public function save(): void
-    {
-        $this->validate(['name' => 'required|min:2']);
-
-        $id = Toast::info('Saving profile...')->persistent()->show();
-
-        // ...persist the profile, then:
-        Toast::update($id)
-            ->message('Profile updated')
-            ->success()
-            ->icon('check')
-            ->duration(2500)
-            ->show();
-    }
-
-    #[OnNative(ToastActionPressed::class)]
-    public function handleToastAction(string $toastId, string $actionId): void
-    {
-        if ($actionId === 'retry') {
-            $this->save();
-        }
-    }
-
-    public function render()
-    {
-        return view('livewire.profile');
-    }
-}
-```
-
-**Blade screen:**
-
-```blade
-<native:scroll-view>
-    <native:column>
-        <native:text>Profile</native:text>
-
-        <native:text-input wire:model="name" placeholder="Your name" />
-
-        <native:button @tap="save">
-            Save
-        </native:button>
-    </native:column>
-</native:scroll-view>
-```
-
-ToastKit is controlled from PHP — the native overlay renders independently, so you never add a Blade toast component.
-
-## Real-world Examples
-
-### Saved successfully
-
-```php
-Toast::success('Changes saved')->show();
-```
-
-### Validation error
-
-```php
-Toast::error('Please fix the highlighted fields')->show();
-```
-
-### Copied to clipboard
-
-```php
-Toast::neutral('Copied')->show();
-```
-
-### Connection lost with Retry
-
-```php
-Toast::error('Connection lost')
-    ->action(label: 'Retry', id: 'retry')
-    ->show();
-```
-
-### Persistent sync
-
-```php
-$id = Toast::info('Syncing...')->persistent()->show();
-
-// ...sync completes:
-Toast::update($id)->message('Synced')->success()->duration(2000)->show();
-```
-
-### Delete confirmation result
-
-```php
-Toast::success('Item deleted')->dismissible()->show();
-```
-
-## Fetch Integration (Optional)
-
-ToastKit pairs naturally with [victorycodedev/nativephp-fetch](https://github.com/victorycodedev/nativephp-fetch) for upload/download progress. Fetch is **not** a ToastKit dependency — this is an optional integration example.
-
-```php
-use Victorycodedev\ToastKit\Facades\Toast;
-
-$id = Toast::info('Downloading file...')
-    ->persistent()
-    ->show();
-
-$requestId = Fetch::download('https://example.com/report.pdf');
-
-// ...on completion:
-Toast::update($id)
-    ->message('Download complete')
-    ->success()
-    ->icon('check')
-    ->duration(2500)
-    ->show();
-
-// ...on failure:
-Toast::update($id)
-    ->message('Download failed')
-    ->error()
-    ->duration(3000)
-    ->show();
-```
-
-Refer to the Fetch package's documentation for its exact API surface.
-
-## JavaScript Usage
-
-ToastKit ships a JavaScript library in `resources/js/` for Inertia/Vue/React/WebView-oriented apps. It exposes a fluent `Toast` API plus a named export for every bridge function.
-
-```js
-import { Toast } from 'victorycodedev/toastkit';
-
-Toast.success('Saved').show();
-```
-
-Rich builders mirror the PHP API:
-
-```js
-const id = await Toast.make('Uploading...')
-    .info()
-    .persistent()
-    .show();
-
-await Toast.update(id)
-    .message('Done')
-    .success()
-    .duration(2000)
-    .show();
-
-await Toast.dismiss(id);
-await Toast.dismissAll();
-```
-
-Raw bridge functions are available as named exports:
-
-```js
-import { Show, Update, Dismiss, DismissAll } from 'victorycodedev/toastkit';
-
-await Show({ id: 'one', message: 'Hello' });
-await Update('one', { message: 'Done' });
-await Dismiss('one');
-await DismissAll();
-```
-
-> **Note:** npm publishing is future work. Today the library lives in `resources/js/` and can be imported directly, copied into your app, or bundled by your build tool. No npm package is published yet.
-
-## Testing ToastKit in Your App
-
-ToastKit registers FakeBridge test macros so your own tests can assert on toast traffic using domain vocabulary. These tests assert on bridge calls and do **not** require an emulator or device.
-
-```php
-use Native\Mobile\Testing\Native;
-
-Native::test(ProfileScreen::class)
-    ->call('save')
-    ->assertToastShownWithMessage('Profile updated');
-```
-
-Available macros:
-
-| Macro | Description |
-| --- | --- |
-| `assertToastShown(?callable $filter = null)` | A `ToastKit.Show` call was made. |
-| `assertToastShownWithMessage(string $message)` | A toast with the given message was shown. |
-| `assertToastShownWithId(string $id)` | A toast with the given ID was shown. |
-| `assertToastUpdated(string $id, ?callable $changesFilter = null)` | A toast was updated with the given ID (and optionally matching changes). |
-| `assertToastDismissed(string $id)` | A toast with the given ID was dismissed. |
-| `assertAllToastsDismissed()` | `ToastKit.DismissAll` was called. |
-
-These are assertions on the bridge — native visual behavior must still be verified on a device or simulator.
-
-To test how a screen reacts to a ToastKit event, use NativePHP's own `emitNative()` mechanism to deliver the event yourself:
-
-```php
-use Native\Mobile\Testing\Native;
-use Victorycodedev\ToastKit\Events\ToastActionPressed;
-
-Native::test(ProfileScreen::class)
-    ->emitNative(ToastActionPressed::class, [
-        'toastId' => 'one',
-        'actionId' => 'retry',
-    ])
-    ->assertSet('retried', true);
-```
-
-`emitNative()` fires your `#[OnNative]` listeners with the supplied payload, exactly as the device would, without an emulator or device.
-
-## API Reference
+`Toast::update($id)` returns a `PendingToastUpdate`. It exposes the same configuration methods as `PendingToast` — except `id()`, since the ID is fixed — plus a `show()` method that applies the update. Only properties you explicitly set are sent; everything else is preserved.
 
 ### Enums
 
@@ -691,67 +572,20 @@ Native::test(ProfileScreen::class)
 | `padding` | `16` |
 | `shadow` | `true` |
 
-## Event Reference
+## Compatibility
 
-| Event | Payload |
+| Requirement | Version |
 | --- | --- |
-| `Victorycodedev\ToastKit\Events\ToastShown` | `toastId` (string) |
-| `Victorycodedev\ToastKit\Events\ToastDismissed` | `toastId` (string), `reason` (string) |
-| `Victorycodedev\ToastKit\Events\ToastActionPressed` | `toastId` (string), `actionId` (string) |
+| PHP | 8.3+ |
+| NativePHP Mobile | 4.1+ |
+| Android | API 29+ (Android 10) |
+| iOS | 18.0+ |
 
-## Permissions & Native Dependencies
+ToastKit supports Android and iOS.
 
-ToastKit requires no Android permissions and no iOS permission strings. It adds no third-party native dependencies — it relies on the NativePHP host toolchain and native platform frameworks (Jetpack Compose and SwiftUI).
+## Permissions & Dependencies
 
-## Platform Support
-
-| Platform | Status |
-| --- | --- |
-| Android (Compose) | Implemented |
-| iOS (SwiftUI) | Implemented |
-
-Physical-device support is claimed only after it has been verified on real hardware.
-
-## Behavior & Semantics
-
-- `show()` returns a UUID, or the custom ID supplied with `->id()`.
-- Messages must be non-empty.
-- A queued toast's timer does not run while it is waiting.
-- Stack overflow is FIFO; overflow toasts are admitted as others dismiss.
-- All dismissals are exactly-once — timeout, swipe, action, and bridge calls cannot emit duplicate dismissal events.
-- Toasts install a lifecycle-aware window overlay; they survive screen navigation and activity/scene changes.
-
-## Accessibility
-
-- Titles and messages use scalable text (iOS Dynamic Type, Android `sp` units).
-- Icons are decorative and hidden from assistive technologies; the close control is labeled "Dismiss".
-- The iOS action and close controls are native `Button`s; the Android close control exposes a "Dismiss" description.
-- Reduced-motion preferences are respected (iOS `accessibilityReduceMotion`, Android animator scale / touch exploration).
-- Default variant colors use dark backgrounds with light foregrounds for strong contrast.
-
-Known limitation: on Android, the action control is rendered as tappable text rather than a fully semantic button, so its accessibility label may be less explicit than on iOS. ToastKit does not claim full WCAG compliance.
-
-## Limitations
-
-- Native rendering requires a rebuild of the consuming app (`php artisan native:run`) after installation.
-- ToastKit is not a Blade/EDGE component — it is controlled from PHP/JS and renders through a native overlay.
-- Physical-device behavior (especially gestures and lifecycle edge cases) must still be certified on real devices.
-
-## Troubleshooting
-
-**Plugin not discovered?**
-- Verify `composer.json` has `"type": "nativephp-plugin"`.
-- Run `composer dump-autoload`.
-- Run `php artisan native:plugin:list`.
-
-**Toasts not appearing at runtime?**
-- Rebuild the app after installing or changing native code: `php artisan native:run` (or `php artisan native:install --force`).
-- Confirm the plugin is registered: `php artisan native:plugin:list`.
-
-**Events not firing?**
-- Confirm you're dispatching on the main thread in native code.
-- Check that the event class name matches the manifest.
-- Verify the `#[OnNative]` attribute uses the correct event class.
+ToastKit requires no Android permissions and no iOS permission strings. It adds no third-party native dependencies — it relies on the NativePHP host toolchain and the native platform frameworks (Jetpack Compose and SwiftUI).
 
 ## Contributing
 
