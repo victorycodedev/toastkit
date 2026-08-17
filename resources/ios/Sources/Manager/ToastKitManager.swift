@@ -6,6 +6,7 @@ final class ToastKitManager: ObservableObject {
     static let shared = ToastKitManager()
 
     @Published private(set) var visible: [ToastKitConfiguration] = []
+    private var interactiveFrames: [String: CGRect] = [:]
     private var states: [String: ToastKitState] = [:]
     private var waiting: [String] = []
     private var timers: [String: Task<Void, Never>] = [:]
@@ -40,6 +41,14 @@ final class ToastKitManager: ObservableObject {
         guard let state = states[toastId], !state.terminated else { return }
         ToastKitEventDispatcher.action(toastId, actionId: actionId)
         terminate(toastId, reason: "action")
+    }
+
+    func updateInteractiveFrames(_ frames: [String: CGRect]) {
+        interactiveFrames = frames
+    }
+
+    func containsInteractivePoint(_ point: CGPoint) -> Bool {
+        interactiveFrames.values.contains { $0.insetBy(dx: -8, dy: -8).contains(point) }
     }
 
     private func canAdmit(_ configuration: ToastKitConfiguration) -> Bool {

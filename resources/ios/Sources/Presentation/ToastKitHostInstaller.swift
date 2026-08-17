@@ -38,8 +38,8 @@ final class ToastKitHostInstaller {
 
 private final class ToastKitPassthroughWindow: UIWindow {
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        let result = super.hitTest(point, with: event)
-        return result === rootViewController?.view ? nil : result
+        guard ToastKitManager.shared.containsInteractivePoint(point) else { return nil }
+        return super.hitTest(point, with: event)
     }
 }
 

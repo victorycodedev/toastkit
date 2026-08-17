@@ -6,11 +6,13 @@ import com.nativephp.mobile.bridge.BridgeResponse
 import com.victorycodedev.plugins.toastkit.bridge.ToastKitBridgeNormalizer
 import com.victorycodedev.plugins.toastkit.bridge.ToastKitEventDispatcher
 import com.victorycodedev.plugins.toastkit.manager.ToastKitManager
+import com.victorycodedev.plugins.toastkit.presentation.ToastKitHostInstaller
 
 object ToastKitFunctions {
     class Show(private val activity: FragmentActivity) : BridgeFunction {
         override fun execute(parameters: Map<String, Any>): Map<String, Any> = respond {
             ToastKitEventDispatcher.bind(activity)
+            ToastKitHostInstaller.ensureAttached(activity)
             val toast = ToastKitBridgeNormalizer.show(parameters)
             ToastKitManager.show(toast)
             mapOf("id" to toast.id, "accepted" to true)

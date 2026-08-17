@@ -16,6 +16,8 @@ import com.victorycodedev.plugins.toastkit.model.ToastKitPosition
 import com.victorycodedev.plugins.toastkit.bridge.ToastKitEventDispatcher
 import androidx.fragment.app.FragmentActivity
 import java.util.WeakHashMap
+import android.os.Handler
+import android.os.Looper
 
 internal object ToastKitHostInstaller : Application.ActivityLifecycleCallbacks {
     private val attached = WeakHashMap<Activity, List<ComposeView>>()
@@ -29,9 +31,14 @@ internal object ToastKitHostInstaller : Application.ActivityLifecycleCallbacks {
 
     override fun onActivityResumed(activity: Activity) {
         (activity as? FragmentActivity)?.let(ToastKitEventDispatcher::bind)
-        attach(activity)
+        ensureAttached(activity)
     }
     override fun onActivityDestroyed(activity: Activity) { attached.remove(activity)?.forEach { (it.parent as? ViewGroup)?.removeView(it) } }
+
+    fun ensureAttached(activity: Activity) {
+        if (Looper.myLooper() == Looper.getMainLooper()) attach(activity)
+        else Handler(Looper.getMainLooper()).post { attach(activity) }
+    }
 
     private fun attach(activity: Activity) {
         if (attached.containsKey(activity) || activity !is ComponentActivity) return

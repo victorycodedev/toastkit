@@ -15,6 +15,9 @@ struct ToastKitHost: View {
             .padding(.vertical, 12)
             .frame(width: proxy.size.width, height: proxy.size.height)
         }
+        .onPreferenceChange(ToastKitFramePreferenceKey.self) { frames in
+            manager.updateInteractiveFrames(frames)
+        }
         .allowsHitTesting(!manager.visible.isEmpty)
         .ignoresSafeArea(.keyboard)
     }
@@ -76,6 +79,14 @@ private struct ToastKitView: View {
         .offset(drag)
         .opacity(Double(max(CGFloat(0.35), CGFloat(1) - (abs(drag.width) + abs(drag.height)) / CGFloat(700))))
         .contentShape(Rectangle())
+        .background {
+            GeometryReader { proxy in
+                Color.clear.preference(
+                    key: ToastKitFramePreferenceKey.self,
+                    value: [toast.id: proxy.frame(in: .global)]
+                )
+            }
+        }
         .toastKitConditional(toast.swipeToDismiss) { $0.gesture(dragGesture) }
         .animation(reduceMotion ? .linear(duration: 0.1) : .spring(response: 0.3, dampingFraction: 0.78), value: drag)
     }
@@ -95,6 +106,14 @@ private struct ToastKitView: View {
                 if distance > 80 || abs(projected) > 180 { ToastKitManager.shared.dismiss(toast.id, reason: "swipe") }
                 else { drag = .zero }
             }
+    }
+}
+
+private struct ToastKitFramePreferenceKey: PreferenceKey {
+    static var defaultValue: [String: CGRect] = [:]
+
+    static func reduce(value: inout [String: CGRect], nextValue: () -> [String: CGRect]) {
+        value.merge(nextValue(), uniquingKeysWith: { _, latest in latest })
     }
 }
 
