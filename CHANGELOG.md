@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Initial V1 API: `Toast` facade, `PendingToast` and `PendingToastUpdate` builders.
+- Initial public API: `Toast` facade, `PendingToast` and `PendingToastUpdate` builders.
 - Five variants (`neutral`, `success`, `error`, `warning`, `info`) with native defaults.
 - Content options: title, message, icons with iOS/Android overrides, and action buttons.
 - Presentation options: position, duration, persistent toasts, native animations, swipe-to-dismiss, close control, queue/stack strategies, and stack limits.

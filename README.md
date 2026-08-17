@@ -1,8 +1,8 @@
 # ToastKit
 
-Rich, customizable native toast notifications for [NativePHP Mobile](https://nativephp.com/docs/mobile) v4.
+Rich, customizable native toast notifications for [NativePHP Mobile](https://nativephp.com/docs/mobile).
 
-ToastKit gives your PHP, Livewire, and JavaScript-driven NativePHP apps first-class native toasts — success, error, warning, info, and neutral variants with titles, icons, custom styling, swipe-to-dismiss, action buttons, and full queue/stack management. Toasts are rendered by native Jetpack Compose (Android) and SwiftUI (iOS) overlays, so they look and feel like part of the operating system.
+ToastKit gives your NativePHP app first-class native toasts — success, error, warning, info, and neutral variants with titles, icons, custom styling, swipe-to-dismiss, action buttons, and full queue/stack management. Toasts are rendered by native Jetpack Compose (Android) and SwiftUI (iOS) overlays, so they look and feel like part of the operating system.
 
 ## Feature Highlights
 
@@ -102,7 +102,7 @@ Toast::make('Profile updated')
 
 ## PHP Usage
 
-ToastKit is controlled entirely from PHP. The native overlay renders independently — there is no Blade/EDGE component to add.
+ToastKit is controlled entirely from PHP. The native overlay renders independently.
 
 ### The `Toast` facade
 

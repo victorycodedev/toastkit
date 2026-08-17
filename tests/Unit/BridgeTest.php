@@ -1,6 +1,6 @@
 <?php
 
-it('sends a V1 show contract with full defaults', function () {
+it('sends the show contract with full defaults', function () {
     $id = $this->kit->make()->message('Hello')->show();
 
     [$method, $payload] = $this->calls[0];

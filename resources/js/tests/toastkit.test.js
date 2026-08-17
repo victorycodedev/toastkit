@@ -117,7 +117,7 @@ test("queue, stack and maxVisible are set", () => {
   assert.equal(Toast.make("x").stack().maxVisible(4).payload().max_visible, 4);
 });
 
-test("show() sends the full V1 payload to the bridge", async () => {
+test("show() sends the full payload to the bridge", async () => {
   const calls = [];
   fakeBridge(calls);
   const id = await Toast.success("Saved").position("top").duration(1200).show();
