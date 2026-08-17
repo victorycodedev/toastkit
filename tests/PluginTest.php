@@ -1,221 +1,137 @@
 <?php
 
-/**
- * Plugin validation tests for Toastkit.
- *
- * Run with: ./vendor/bin/pest
- */
+use Illuminate\Container\Container;
+use Illuminate\Support\Facades\Facade;
+use Victorycodedev\ToastKit\Enums\ToastAnimation;
+use Victorycodedev\ToastKit\Enums\ToastPosition;
+use Victorycodedev\ToastKit\Events\ToastActionPressed;
+use Victorycodedev\ToastKit\Events\ToastDismissed;
+use Victorycodedev\ToastKit\Events\ToastShown;
+use Victorycodedev\ToastKit\Facades\Toast;
+use Victorycodedev\ToastKit\PendingToast;
+use Victorycodedev\ToastKit\ToastKit;
 
 beforeEach(function () {
-    $this->pluginPath = dirname(__DIR__);
-    $this->manifestPath = $this->pluginPath . '/nativephp.json';
-});
-
-describe('Plugin Manifest', function () {
-    it('has a valid nativephp.json file', function () {
-        expect(file_exists($this->manifestPath))->toBeTrue();
-
-        $content = file_get_contents($this->manifestPath);
-        $manifest = json_decode($content, true);
-
-        expect(json_last_error())->toBe(JSON_ERROR_NONE);
-    });
-
-    it('has required fields', function () {
-        $manifest = json_decode(file_get_contents($this->manifestPath), true);
-
-        expect($manifest)->toHaveKeys(['name', 'namespace', 'bridge_functions']);
-        expect($manifest['name'])->toBe('victorycodedev/toastkit');
-        expect($manifest['namespace'])->toBe('Toastkit');
-    });
-
-    it('has valid bridge functions', function () {
-        $manifest = json_decode(file_get_contents($this->manifestPath), true);
-
-        expect($manifest['bridge_functions'])->toBeArray();
-
-        foreach ($manifest['bridge_functions'] as $function) {
-            expect($function)->toHaveKeys(['name']);
-            expect($function)->toHaveAnyKeys(['android', 'ios']);
-        }
-    });
-
-    it('has valid marketplace metadata', function () {
-        $manifest = json_decode(file_get_contents($this->manifestPath), true);
-
-        // Optional but recommended for marketplace
-        if (isset($manifest['keywords'])) {
-            expect($manifest['keywords'])->toBeArray();
-        }
-
-        if (isset($manifest['category'])) {
-            expect($manifest['category'])->toBeString();
-        }
-
-        if (isset($manifest['platforms'])) {
-            expect($manifest['platforms'])->toBeArray();
-            foreach ($manifest['platforms'] as $platform) {
-                expect($platform)->toBeIn(['android', 'ios']);
-            }
-        }
+    $this->calls = [];
+    $this->kit = new ToastKit(function (string $method, array $payload) {
+        $this->calls[] = [$method, $payload];
     });
 });
 
-describe('Native Code', function () {
-    it('has Android Kotlin file', function () {
-        $kotlinFile = $this->pluginPath . '/resources/android/ToastkitFunctions.kt';
-
-        expect(file_exists($kotlinFile))->toBeTrue();
-
-        $content = file_get_contents($kotlinFile);
-        expect($content)->toContain('package com.victorycodedev.plugins.toastkit');
-        expect($content)->toContain('object ToastkitFunctions');
-        expect($content)->toContain('BridgeFunction');
-    });
-
-    it('has iOS Swift file', function () {
-        $swiftFile = $this->pluginPath . '/resources/ios/ToastkitFunctions.swift';
-
-        expect(file_exists($swiftFile))->toBeTrue();
-
-        $content = file_get_contents($swiftFile);
-        expect($content)->toContain('enum ToastkitFunctions');
-        expect($content)->toContain('BridgeFunction');
-    });
-
-    it('has matching bridge function classes in native code', function () {
-        $manifest = json_decode(file_get_contents($this->manifestPath), true);
-
-        $kotlinFile = $this->pluginPath . '/resources/android/ToastkitFunctions.kt';
-        $swiftFile = $this->pluginPath . '/resources/ios/ToastkitFunctions.swift';
-
-        $kotlinContent = file_get_contents($kotlinFile);
-        $swiftContent = file_get_contents($swiftFile);
-
-        foreach ($manifest['bridge_functions'] as $function) {
-            // Extract class name from the function reference
-            if (isset($function['android'])) {
-                $parts = explode('.', $function['android']);
-                $className = end($parts);
-                expect($kotlinContent)->toContain("class {$className}");
-            }
-
-            if (isset($function['ios'])) {
-                $parts = explode('.', $function['ios']);
-                $className = end($parts);
-                expect($swiftContent)->toContain("class {$className}");
-            }
-        }
-    });
+it('resolves the Toast facade', function () {
+    $container = new Container();
+    $container->instance('toastkit', $this->kit);
+    Facade::setFacadeApplication($container);
+    expect(Toast::make('Hello'))->toBeInstanceOf(PendingToast::class);
+    Facade::clearResolvedInstances();
 });
 
-describe('PHP Classes', function () {
-    it('has service provider', function () {
-        $file = $this->pluginPath . '/src/ToastkitServiceProvider.php';
-        expect(file_exists($file))->toBeTrue();
-
-        $content = file_get_contents($file);
-        expect($content)->toContain('namespace Victorycodedev\Toastkit');
-        expect($content)->toContain('class ToastkitServiceProvider');
-    });
-
-    it('has facade', function () {
-        $file = $this->pluginPath . '/src/Facades/Toastkit.php';
-        expect(file_exists($file))->toBeTrue();
-
-        $content = file_get_contents($file);
-        expect($content)->toContain('namespace Victorycodedev\Toastkit\Facades');
-        expect($content)->toContain('class Toastkit extends Facade');
-    });
-
-    it('has main implementation class', function () {
-        $file = $this->pluginPath . '/src/Toastkit.php';
-        expect(file_exists($file))->toBeTrue();
-
-        $content = file_get_contents($file);
-        expect($content)->toContain('namespace Victorycodedev\Toastkit');
-        expect($content)->toContain('class Toastkit');
-    });
+it('builds the default show payload and generates a UUID', function () {
+    $id = $this->kit->make()->message('Hello')->title('Greeting')->show();
+    [$method, $payload] = $this->calls[0];
+    expect($id)->toMatch('/^[0-9a-f-]{36}$/')->and($method)->toBe('ToastKit.Show')
+        ->and($payload)->toMatchArray([
+            'id' => $id, 'contract_version' => 1, 'message' => 'Hello', 'title' => 'Greeting',
+            'variant' => 'neutral', 'position' => 'bottom', 'duration' => 3000,
+            'persistent' => false, 'animation' => 'spring', 'swipe_to_dismiss' => true,
+            'dismissible' => false, 'strategy' => 'queue', 'max_visible' => 3,
+            'overflow_behavior' => 'queue',
+        ]);
 });
 
-describe('Composer Configuration', function () {
-    it('has valid composer.json', function () {
-        $composerPath = $this->pluginPath . '/composer.json';
-        expect(file_exists($composerPath))->toBeTrue();
-
-        $content = file_get_contents($composerPath);
-        $composer = json_decode($content, true);
-
-        expect(json_last_error())->toBe(JSON_ERROR_NONE);
-        expect($composer['type'])->toBe('nativephp-plugin');
-        expect($composer['extra']['nativephp']['manifest'])->toBe('nativephp.json');
-    });
+it('uses a custom ID', function () {
+    expect($this->kit->make('Hello')->id('custom')->show())->toBe('custom');
 });
 
-describe('Lifecycle Hooks', function () {
-    it('has valid hooks configuration', function () {
-        $manifest = json_decode(file_get_contents($this->manifestPath), true);
+it('supports every variant shortcut', function (string $method, string $variant) {
+    $this->kit->{$method}('Message')->show();
+    expect($this->calls[0][1]['variant'])->toBe($variant);
+})->with([['success', 'success'], ['error', 'error'], ['warning', 'warning'], ['info', 'info'], ['neutral', 'neutral']]);
 
-        if (isset($manifest['hooks'])) {
-            expect($manifest['hooks'])->toBeArray();
-
-            $validHooks = ['pre_compile', 'post_compile', 'copy_assets', 'post_build'];
-            foreach (array_keys($manifest['hooks']) as $hook) {
-                expect($hook)->toBeIn($validHooks);
-            }
-        }
-    });
-
-    it('has copy_assets hook command', function () {
-        $manifest = json_decode(file_get_contents($this->manifestPath), true);
-
-        expect($manifest['hooks']['copy_assets'] ?? null)->not->toBeNull();
-
-        $commandFile = $this->pluginPath . '/src/Commands/CopyAssetsCommand.php';
-        expect(file_exists($commandFile))->toBeTrue();
-    });
-
-    it('copy_assets command extends NativePluginHookCommand', function () {
-        $commandFile = $this->pluginPath . '/src/Commands/CopyAssetsCommand.php';
-        $content = file_get_contents($commandFile);
-
-        expect($content)->toContain('extends NativePluginHookCommand');
-        expect($content)->toContain('use Native\Mobile\Plugins\Commands\NativePluginHookCommand');
-    });
-
-    it('copy_assets command has correct signature', function () {
-        $manifest = json_decode(file_get_contents($this->manifestPath), true);
-        $expectedSignature = $manifest['hooks']['copy_assets'];
-
-        $commandFile = $this->pluginPath . '/src/Commands/CopyAssetsCommand.php';
-        $content = file_get_contents($commandFile);
-
-        expect($content)->toContain('$signature = \'' . $expectedSignature . '\'');
-    });
-
-    it('copy_assets command has platform-specific methods', function () {
-        $commandFile = $this->pluginPath . '/src/Commands/CopyAssetsCommand.php';
-        $content = file_get_contents($commandFile);
-
-        // Should check for platform
-        expect($content)->toContain('$this->isAndroid()');
-        expect($content)->toContain('$this->isIos()');
-    });
-
-    it('has valid assets configuration', function () {
-        $manifest = json_decode(file_get_contents($this->manifestPath), true);
-
-        // Assets are at top level with android/ios nested inside
-        if (isset($manifest['assets'])) {
-            expect($manifest['assets'])->toBeArray();
-
-            if (isset($manifest['assets']['android'])) {
-                expect($manifest['assets']['android'])->toBeArray();
-            }
-
-            if (isset($manifest['assets']['ios'])) {
-                expect($manifest['assets']['ios'])->toBeArray();
-            }
-        }
-    });
+it('lets explicit customization override variant defaults', function () {
+    $this->kit->make('Saved')->icon('star')->background('#123')->success()->show();
+    $sent = $this->calls[0][1];
+    expect($sent['icon'])->toBe(['name' => 'star'])->and($sent['style']['background'])->toBe('#123')
+        ->and($sent['style']['icon_color'])->toBe('#86EFAC');
 });
+
+it('supports presentation action style and stack options', function () {
+    $this->kit->make('Hello')->position(ToastPosition::Top)->animation(ToastAnimation::Slide)
+        ->swipeToDismiss(false)->dismissible()->action('Retry', 'retry')
+        ->background('#111827')->foreground('#fff')->iconColor('#22c55e')->actionColor('#60a5fa')
+        ->cornerRadius(18)->padding(16)->shadow(false)->stack()->maxVisible(4)->show();
+    $payload = $this->calls[0][1];
+    expect($payload)->toMatchArray([
+        'position' => 'top', 'animation' => 'slide', 'swipe_to_dismiss' => false,
+        'dismissible' => true, 'action' => ['id' => 'retry', 'label' => 'Retry'],
+        'strategy' => 'stack', 'max_visible' => 4,
+    ])->and($payload['style'])->toMatchArray([
+        'background' => '#111827', 'foreground' => '#FFF', 'icon_color' => '#22C55E',
+        'action_color' => '#60A5FA', 'corner_radius' => 18.0, 'padding' => 16.0, 'shadow' => false,
+    ]);
+});
+
+it('supports persistence and duration transitions', function () {
+    $this->kit->make('Hello')->persistent()->show();
+    expect($this->calls[0][1])->toMatchArray(['persistent' => true, 'duration' => null]);
+    $this->kit->make('Hello')->persistent()->duration(500)->show();
+    expect($this->calls[1][1])->toMatchArray(['persistent' => false, 'duration' => 500]);
+});
+
+it('isolates builder state', function () {
+    $this->kit->success('Saved')->position('top')->show();
+    $this->kit->error('Failed')->show();
+    expect($this->calls[1][1]['variant'])->toBe('error')->and($this->calls[1][1]['position'])->toBe('bottom');
+});
+
+it('updates only explicitly changed fields and retains the ID', function () {
+    $id = $this->kit->update('upload')->message('50%')->background('#123456')->show();
+    expect($id)->toBe('upload')->and($this->calls[0])->toBe([
+        'ToastKit.Update', ['id' => 'upload', 'changes' => ['message' => '50%', 'style' => ['background' => '#123456']]],
+    ]);
+});
+
+it('sends dismiss and dismissAll payloads', function () {
+    $this->kit->dismiss('one');
+    $this->kit->dismissAll();
+    expect($this->calls)->toBe([['ToastKit.Dismiss', ['id' => 'one']], ['ToastKit.DismissAll', []]]);
+});
+
+it('constructs native events', function () {
+    expect(new ToastShown('one'))->toastId->toBe('one')
+        ->and(new ToastDismissed('one', 'swipe'))->reason->toBe('swipe')
+        ->and(new ToastActionPressed('one', 'retry'))->actionId->toBe('retry');
+});
+
+it('registers the v1 bridge events and platform baselines', function () {
+    $manifest = json_decode(file_get_contents(dirname(__DIR__).'/nativephp.json'), true, flags: JSON_THROW_ON_ERROR);
+    expect(array_column($manifest['bridge_functions'], 'name'))->toBe([
+        'ToastKit.Show', 'ToastKit.Update', 'ToastKit.Dismiss', 'ToastKit.DismissAll',
+    ])->and($manifest['events'])->toBe([ToastShown::class, ToastDismissed::class, ToastActionPressed::class])
+        ->and($manifest['android']['min_version'])->toBe(29)->and($manifest['ios']['min_version'])->toBe('18.0');
+});
+
+it('has matching placeholder native bridge classes', function () {
+    $root = dirname(__DIR__);
+    $android = file_get_contents($root.'/resources/android/src/ToastKitFunctions.kt');
+    $ios = file_get_contents($root.'/resources/ios/Sources/ToastKitFunctions.swift');
+    foreach (['Show', 'Update', 'Dismiss', 'DismissAll'] as $class) {
+        expect($android)->toContain("class {$class} : BridgeFunction")->and($ios)->toContain("class {$class}: BridgeFunction");
+    }
+});
+
+it('rejects invalid input', function (Closure $operation) {
+    expect(fn () => $operation($this->kit))->toThrow(InvalidArgumentException::class);
+})->with([
+    'missing message' => fn (ToastKit $kit) => $kit->make()->show(),
+    'empty message' => fn (ToastKit $kit) => $kit->make(' '),
+    'duration' => fn (ToastKit $kit) => $kit->make('x')->duration(0),
+    'position' => fn (ToastKit $kit) => $kit->make('x')->position('left'),
+    'animation' => fn (ToastKit $kit) => $kit->make('x')->animation('bounce'),
+    'variant' => fn (ToastKit $kit) => $kit->make('x')->variant('danger'),
+    'color' => fn (ToastKit $kit) => $kit->make('x')->background('red'),
+    'action' => fn (ToastKit $kit) => $kit->make('x')->action('', 'retry'),
+    'max visible' => fn (ToastKit $kit) => $kit->make('x')->maxVisible(0),
+    'empty id' => fn (ToastKit $kit) => $kit->dismiss(' '),
+    'empty update' => fn (ToastKit $kit) => $kit->update('one')->show(),
+]);

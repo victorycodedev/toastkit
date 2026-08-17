@@ -1,61 +1,15 @@
-## victorycodedev/toastkit
+## ToastKit
 
-Rich, customizable native toast notifications for NativePHP Mobile.
+Use the `Toast` facade to create native toast contracts:
 
-### Installation
+<code-snippet name="Showing a ToastKit toast" lang="php">
+    use Victorycodedev\ToastKit\Facades\Toast;
 
-```bash
-composer require victorycodedev/toastkit
-```
-
-### PHP Usage (Livewire/Blade)
-
-Use the `Toastkit` facade:
-
-@verbatim
-<code-snippet name="Using Toastkit Facade" lang="php">
-use Victorycodedev\Toastkit\Facades\Toastkit;
-
-// Execute the plugin functionality
-$result = Toastkit::execute(['option1' => 'value']);
-
-// Get the current status
-$status = Toastkit::getStatus();
+    $id = Toast::success('Changes saved')->show();
+    Toast::update($id)->message('Updated')->show();
+    Toast::dismiss($id);
 </code-snippet>
-@endverbatim
 
-### Available Methods
+ToastKit currently defines the PHP and native bridge contract. Native rendering is not implemented yet.
 
-- `Toastkit::execute()`: Execute the plugin functionality
-- `Toastkit::getStatus()`: Get the current status
-
-### Events
-
-- `ToastkitCompleted`: Listen with `#[OnNative(ToastkitCompleted::class)]`
-
-@verbatim
-<code-snippet name="Listening for Toastkit Events" lang="php">
-use Native\Mobile\Attributes\OnNative;
-use Victorycodedev\Toastkit\Events\ToastkitCompleted;
-
-#[OnNative(ToastkitCompleted::class)]
-public function handleToastkitCompleted($result, $id = null)
-{
-    // Handle the event
-}
-</code-snippet>
-@endverbatim
-
-### JavaScript Usage (Vue/React/Inertia)
-
-@verbatim
-<code-snippet name="Using Toastkit in JavaScript" lang="javascript">
-import { toastkit } from '@victorycodedev/toastkit';
-
-// Execute the plugin functionality
-const result = await toastkit.execute({ option1: 'value' });
-
-// Get the current status
-const status = await toastkit.getStatus();
-</code-snippet>
-@endverbatim
+Listen for `ToastShown`, `ToastDismissed`, and `ToastActionPressed` with NativePHP's `#[On]` attribute.

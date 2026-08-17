@@ -1,26 +1,14 @@
 <?php
 
-namespace Victorycodedev\Toastkit;
+namespace Victorycodedev\ToastKit;
 
 use Illuminate\Support\ServiceProvider;
-use Victorycodedev\Toastkit\Commands\CopyAssetsCommand;
 
-class ToastkitServiceProvider extends ServiceProvider
+class ToastKitServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->singleton(Toastkit::class, function () {
-            return new Toastkit();
-        });
-    }
-
-    public function boot(): void
-    {
-        // Register plugin hook commands
-        if ($this->app->runningInConsole()) {
-            $this->commands([
-                CopyAssetsCommand::class,
-            ]);
-        }
+        $this->app->singleton(ToastKit::class, fn() => new ToastKit());
+        $this->app->alias(ToastKit::class, 'toastkit');
     }
 }

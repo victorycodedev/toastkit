@@ -5,23 +5,22 @@
     "license": "MIT",
     "authors": [
         {
-            "name": "Your Name",
-            "email": "you@example.com"
+            "name": "Victory Efekpogua"
         }
     ],
     "require": {
         "php": "^8.2",
-        "nativephp/mobile": "^3.0"
+        "nativephp/mobile": "^4.1"
     },
     "autoload": {
         "psr-4": {
-            "Victorycodedev\\Toastkit\\": "src/"
+            "Victorycodedev\\ToastKit\\": "src/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "Victorycodedev\\Toastkit\\ToastkitServiceProvider"
+                "Victorycodedev\\ToastKit\\ToastKitServiceProvider"
             ]
         },
         "nativephp": {

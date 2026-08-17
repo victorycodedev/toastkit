@@ -2,72 +2,56 @@
     "name": "victorycodedev/toastkit",
     "version": "1.0.0",
     "description": "Rich, customizable native toast notifications for NativePHP Mobile.",
-    "namespace": "Toastkit",
-    "keywords": [],
+    "namespace": "ToastKit",
     "category": "utilities",
     "license": "MIT",
     "pricing": {
         "type": "free"
     },
     "author": {
-        "name": "Your Name",
-        "email": "you@example.com",
-        "url": ""
+        "name": "Victory Efekpogua",
+        "url": "https://github.com/victorycodedev"
     },
-    "homepage": "",
-    "repository": "",
-    "funding": [],
     "platforms": [
         "android",
         "ios"
     ],
-    "icon": "resources/icon.png",
-    "screenshots": [],
     "bridge_functions": [
         {
-            "name": "Toastkit.Execute",
-            "android": "com.victorycodedev.plugins.toastkit.ToastkitFunctions.Execute",
-            "ios": "ToastkitFunctions.Execute",
-            "description": "Execute the plugin functionality"
+            "name": "ToastKit.Show",
+            "android": "com.victorycodedev.plugins.toastkit.ToastKitFunctions.Show",
+            "ios": "ToastKitFunctions.Show",
+            "description": "Displays a native toast."
         },
         {
-            "name": "Toastkit.GetStatus",
-            "android": "com.victorycodedev.plugins.toastkit.ToastkitFunctions.GetStatus",
-            "ios": "ToastkitFunctions.GetStatus",
-            "description": "Get the current status"
+            "name": "ToastKit.Update",
+            "android": "com.victorycodedev.plugins.toastkit.ToastKitFunctions.Update",
+            "ios": "ToastKitFunctions.Update",
+            "description": "Updates an existing toast by ID."
+        },
+        {
+            "name": "ToastKit.Dismiss",
+            "android": "com.victorycodedev.plugins.toastkit.ToastKitFunctions.Dismiss",
+            "ios": "ToastKitFunctions.Dismiss",
+            "description": "Dismisses an existing toast by ID."
+        },
+        {
+            "name": "ToastKit.DismissAll",
+            "android": "com.victorycodedev.plugins.toastkit.ToastKitFunctions.DismissAll",
+            "ios": "ToastKitFunctions.DismissAll",
+            "description": "Dismisses all active and queued toasts."
         }
     ],
     "android": {
-        "min_version": 21,
-        "permissions": [],
-        "repositories": [],
-        "dependencies": {
-            "implementation": []
-        },
-        "activities": [],
-        "services": [],
-        "receivers": [],
-        "providers": []
+        "min_version": 29
     },
     "ios": {
-        "min_version": "15.0",
-        "permissions": [],
-        "repositories": [],
-        "dependencies": {
-            "swift_packages": [],
-            "pods": []
-        }
+        "min_version": "18.0"
     },
-    "assets": {
-        "android": [],
-        "ios": []
-    },
-    "secrets": [],
     "events": [
-        "Victorycodedev\\Toastkit\\Events\\ToastkitCompleted"
+        "Victorycodedev\\ToastKit\\Events\\ToastShown",
+        "Victorycodedev\\ToastKit\\Events\\ToastDismissed",
+        "Victorycodedev\\ToastKit\\Events\\ToastActionPressed"
     ],
-    "service_provider": "Victorycodedev\\Toastkit\\ToastkitServiceProvider",
-    "hooks": {
-        "copy_assets": "nativephp:toastkit:copy-assets"
-    }
+    "service_provider": "Victorycodedev\\ToastKit\\ToastKitServiceProvider"
 }
