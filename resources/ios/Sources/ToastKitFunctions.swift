@@ -1,9 +1,44 @@
 import Foundation
 
-/// Contract placeholders. Native rendering will be implemented in a later phase.
 enum ToastKitFunctions {
-    class Show: BridgeFunction { func execute(parameters: [String: Any]) throws -> [String: Any] { BridgeResponse.success(data: ["accepted": false]) } }
-    class Update: BridgeFunction { func execute(parameters: [String: Any]) throws -> [String: Any] { BridgeResponse.success(data: ["accepted": false]) } }
-    class Dismiss: BridgeFunction { func execute(parameters: [String: Any]) throws -> [String: Any] { BridgeResponse.success(data: ["accepted": false]) } }
-    class DismissAll: BridgeFunction { func execute(parameters: [String: Any]) throws -> [String: Any] { BridgeResponse.success(data: ["accepted": false]) } }
+    final class Show: BridgeFunction {
+        func execute(parameters: [String: Any]) throws -> [String: Any] {
+            do {
+                let toast = try BridgeNormalizer.show(parameters)
+                Task { @MainActor in ToastManager.shared.show(toast) }
+                return BridgeResponse.success(data: ["id": toast.id, "accepted": true])
+            } catch { return BridgeResponse.error(code: "TOASTKIT_INVALID_ARGUMENT", message: ToastKitFunctions.message(for: error)) }
+        }
+    }
+
+    final class Update: BridgeFunction {
+        func execute(parameters: [String: Any]) throws -> [String: Any] {
+            do {
+                let (id, changes) = try BridgeNormalizer.update(parameters)
+                Task { @MainActor in try? ToastManager.shared.update(id, changes: changes) }
+                return BridgeResponse.success(data: ["id": id, "accepted": true])
+            } catch { return BridgeResponse.error(code: "TOASTKIT_INVALID_ARGUMENT", message: ToastKitFunctions.message(for: error)) }
+        }
+    }
+
+    final class Dismiss: BridgeFunction {
+        func execute(parameters: [String: Any]) throws -> [String: Any] {
+            do {
+                let id = try BridgeNormalizer.id(parameters)
+                Task { @MainActor in ToastManager.shared.dismiss(id) }
+                return BridgeResponse.success(data: ["id": id, "accepted": true])
+            } catch { return BridgeResponse.error(code: "TOASTKIT_INVALID_ARGUMENT", message: ToastKitFunctions.message(for: error)) }
+        }
+    }
+
+    final class DismissAll: BridgeFunction {
+        func execute(parameters: [String: Any]) throws -> [String: Any] {
+            Task { @MainActor in ToastManager.shared.dismissAll() }
+            return BridgeResponse.success(data: ["accepted": true])
+        }
+    }
+
+    private static func message(for error: Error) -> String {
+        (error as? LocalizedError)?.errorDescription ?? "Invalid ToastKit payload"
+    }
 }

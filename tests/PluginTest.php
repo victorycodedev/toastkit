@@ -113,10 +113,11 @@ it('registers the v1 bridge events and platform baselines', function () {
 
 it('has matching placeholder native bridge classes', function () {
     $root = dirname(__DIR__);
-    $android = file_get_contents($root.'/resources/android/src/ToastKitFunctions.kt');
+    $android = file_get_contents($root.'/resources/android/src/com/victorycodedev/plugins/toastkit/ToastKitFunctions.kt');
     $ios = file_get_contents($root.'/resources/ios/Sources/ToastKitFunctions.swift');
     foreach (['Show', 'Update', 'Dismiss', 'DismissAll'] as $class) {
-        expect($android)->toContain("class {$class} : BridgeFunction")->and($ios)->toContain("class {$class}: BridgeFunction");
+        expect($android)->toContain("class {$class}(")->and($android)->toContain(': BridgeFunction')
+            ->and($ios)->toContain("class {$class}: BridgeFunction");
     }
 });
 

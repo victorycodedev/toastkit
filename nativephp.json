@@ -43,10 +43,12 @@
         }
     ],
     "android": {
-        "min_version": 29
+        "min_version": 29,
+        "init_function": "com.victorycodedev.plugins.toastkit.initializeToastKit"
     },
     "ios": {
-        "min_version": "18.0"
+        "min_version": "18.0",
+        "init_function": "initializeToastKit"
     },
     "events": [
         "Victorycodedev\\ToastKit\\Events\\ToastShown",

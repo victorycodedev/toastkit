@@ -2,7 +2,7 @@
 
 Rich, customizable native toast notifications for NativePHP Mobile v4.
 
-> Native rendering is work in progress. This phase defines and tests the PHP, manifest, event, and bridge contracts; it has not been device-tested and does not display UI yet.
+> Native Compose and SwiftUI renderers are implemented, but the plugin is not yet claimed production-ready: Android/iOS consuming-app compilation and device testing remain required.
 
 ## PHP API
 
@@ -45,7 +45,25 @@ Toast::error('Connection lost')
     ->stack()->maxVisible(3)->show();
 ```
 
-Colors accept `#RGB`, `#RRGGBB`, or `#AARRGGBB` and are normalized to uppercase. ToastKit passes NativePHP logical icon names through and supports `icon('check', ios: ..., android: ...)`; the future native renderer will use the host icon resolution instead of carrying a duplicate map.
+Colors accept `#RGB`, `#RRGGBB`, or `#AARRGGBB` and are normalized to uppercase. ToastKit passes NativePHP logical icon names through and supports `icon('check', ios: ..., android: ...)`; native rendering uses host icon resolution instead of carrying a duplicate map.
+
+The native renderers reuse NativePHP 4.2's installed icon helpers. Android uses the explicit `android` override or NativePHP's Material icon resolver; iOS uses the explicit `ios` SF Symbol or NativePHP's `getIconForName`. Unknown names therefore follow the host's fallback behavior.
+
+## Native behavior
+
+ToastKit installs lifecycle-aware window overlays through NativePHP's plugin initialization functions. It does not require a Blade/EDGE component and works over native or web content. Queue admission is FIFO. Stack overflow also queues FIFO, and a queue toast and stack group never compete on screen simultaneously.
+
+Timers begin only when a toast becomes visible. Timing updates reset the deadline; other updates preserve it. All dismissals are terminally guarded, so timeout, action, swipe, and bridge calls cannot emit duplicate dismissal events.
+
+## JavaScript
+
+```js
+import Toast from './resources/js/index.js';
+
+const id = await Toast.info('Uploading...').persistent().show();
+await Toast.update(id).message('Done').success().duration(2000).show();
+await Toast.dismiss(id);
+```
 
 ## Events
 
