@@ -18,4 +18,4 @@ uses()->beforeEach(function () {
     $this->kit = new ToastKit(function (string $method, array $payload) {
         $this->calls[] = [$method, $payload];
     });
-})->in('.');
+})->in('Unit');
