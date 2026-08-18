@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: PHP 8.3 / Node.js 22
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          coverage: none
+          tools: composer:v2
+
+      - name: Validate Composer configuration
+        run: composer validate --strict
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Run PHP tests
+        run: composer test
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          package-manager-cache: false
+
+      - name: Run JavaScript tests
+        run: node --test resources/js/toastkit.test.js
+
+      - name: Check JavaScript syntax
+        run: |
+          for file in resources/js/*.js; do
+            node --check "$file"
+          done
+
+      - name: Validate nativephp.json
+        run: php -r 'json_decode(file_get_contents("nativephp.json"), true, 512, JSON_THROW_ON_ERROR);'
+
+      - name: Check whitespace errors
+        run: git diff --check
