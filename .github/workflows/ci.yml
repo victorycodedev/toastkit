@@ -40,7 +40,7 @@ jobs:
           package-manager-cache: false
 
       - name: Run JavaScript tests
-        run: node --test resources/js/toastkit.test.js
+        run: node --test resources/js/tests/*.test.js
 
       - name: Check JavaScript syntax
         run: |

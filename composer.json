@@ -43,7 +43,7 @@
         "pestphp/pest": "^4.0"
     },
     "scripts": {
-        "test": "pest"
+        "test": "@php vendor/bin/pest"
     },
     "config": {
         "allow-plugins": {
