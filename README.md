@@ -102,6 +102,43 @@ Toast::make('Download complete')
 
 Supported options include `title()`, `icon()`, `position()`, `duration()`, `persistent()`, `animation()`, `swipeToDismiss()`, `dismissible()`, `action()`, and the styling methods `background()`, `foreground()`, `iconColor()`, `actionColor()`, `cornerRadius()`, `padding()`, and `shadow()`. See the [API Reference](#api-reference) for the full list.
 
+## Icons
+
+`icon()` accepts the same icon names as NativePHP's [`<native:icon>`](https://nativephp.com/docs/mobile/4/edge-components/icon) component, so any icon you already use in your Blade views works unchanged:
+
+```php
+Toast::make('Download complete')->icon('check')->show();
+Toast::make('New message')->icon('email')->show();
+Toast::make('Storage full')->icon('warning')->show();
+```
+
+A shared name resolves per platform automatically — SF Symbols on iOS and Material Icons on Android.
+
+### Platform overrides
+
+When each platform needs a different symbol, pass the platform-native name directly:
+
+```php
+Toast::make('Saved')
+    ->icon(
+        'check',
+        ios: 'checkmark.circle.fill', // SF Symbol
+        android: 'done',              // Material Icon ligature
+    )
+    ->show();
+```
+
+- `ios:` — an [SF Symbol](https://developer.apple.com/sf-symbols/) name (dotted, e.g. `house.fill`, `checkmark.circle.fill`).
+- `android:` — a [Material Icon](https://fonts.google.com/icons) ligature name (underscored, e.g. `shopping_cart`, `qr_code_2`).
+
+You can pass either override on its own:
+
+```php
+Toast::make('Rated')->icon(ios: 'star.fill')->show();
+```
+
+See NativePHP's [Icon name reference](https://nativephp.com/docs/mobile/4/edge-components/icon#icon-name-reference) for the names guaranteed to work consistently on both platforms.
+
 ## Updating Toasts
 
 `update()` changes a visible or queued toast in place, keeping the same ID:
@@ -520,7 +557,7 @@ Native::test(ProfileScreen::class)
 | `title(?string $title)` | Set or clear an optional title. |
 | `success()` / `error()` / `warning()` / `info()` / `neutral()` | Set the variant. |
 | `variant(ToastVariant\|string $variant)` | Set the variant by enum or string. |
-| `icon(?string $name = null, $ios = null, $android = null)` | Set an icon with optional platform overrides. |
+| `icon(?string $name = null, $ios = null, $android = null)` | Set an icon using a NativePHP icon name, with optional SF Symbol (`ios:`) / Material Icon (`android:`) overrides. See [Icons](#icons). |
 | `position(ToastPosition\|string $position)` | `top`, `center`, or `bottom`. |
 | `duration(int $milliseconds)` | Set the visible duration (makes the toast timed). |
 | `persistent(bool $persistent = true)` | Make the toast persistent (no timeout). |
