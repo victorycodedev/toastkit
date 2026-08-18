@@ -1,5 +1,13 @@
 <?php
 
+if (! trait_exists(Illuminate\Foundation\Events\Dispatchable::class)) {
+    eval('namespace Illuminate\\Foundation\\Events; trait Dispatchable {}');
+}
+
+if (! trait_exists(Illuminate\Queue\SerializesModels::class)) {
+    eval('namespace Illuminate\\Queue; trait SerializesModels {}');
+}
+
 /*
 |--------------------------------------------------------------------------
 | Test Case
@@ -18,4 +26,4 @@ uses()->beforeEach(function () {
     $this->kit = new ToastKit(function (string $method, array $payload) {
         $this->calls[] = [$method, $payload];
     });
-})->in('Unit');
+})->in(__DIR__ . '/Unit');
