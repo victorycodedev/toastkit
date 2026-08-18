@@ -34,6 +34,14 @@ it('treats Android bridge JSON nulls as absent optional values', function () {
         ->toContain('optionalValue(values["action"])');
 });
 
+it('unwraps Android bridge JSONObject payloads into plain maps', function () {
+    $normalizer = nativeSource('resources/android/src/com/victorycodedev/plugins/toastkit/bridge/ToastKitBridgeNormalizer.kt');
+
+    expect($normalizer)
+        ->toContain('is JSONObject ->')
+        ->toContain('value.keys().asSequence().associate');
+});
+
 it('drives native toast enter and exit transitions explicitly', function () {
     $androidHost = nativeSource('resources/android/src/com/victorycodedev/plugins/toastkit/presentation/ToastKitHost.kt');
     $iosManager = nativeSource('resources/ios/Sources/Manager/ToastKitManager.swift');

@@ -161,7 +161,10 @@ internal object ToastKitBridgeNormalizer {
         requireInput(result >= 0, "$name must not be negative")
         return result
     }
-    @Suppress("UNCHECKED_CAST")
-    private fun stringMap(value: Any?): Map<String, Any>? = value as? Map<String, Any>
+    private fun stringMap(value: Any?): Map<String, Any>? = when (value) {
+        is JSONObject -> value.keys().asSequence().associate { key -> key to value.get(key) }
+        is Map<*, *> -> value.entries.associate { (key, v) -> key.toString() to (v ?: JSONObject.NULL) }
+        else -> null
+    }
     private fun requireInput(condition: Boolean, message: String) { if (!condition) throw ToastKitInputException(message) }
 }
