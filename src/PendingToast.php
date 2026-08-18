@@ -64,6 +64,12 @@ class PendingToast
         return $this;
     }
 
+    protected function putTypography(string $group, array $values): static
+    {
+        $this->options[$group] = array_merge($this->options[$group] ?? [], $values);
+        return $this;
+    }
+
     private function defaults(): array
     {
         return [

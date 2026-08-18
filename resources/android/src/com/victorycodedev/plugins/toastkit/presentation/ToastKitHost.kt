@@ -23,10 +23,14 @@ import androidx.compose.ui.platform.LocalContext
 import android.view.accessibility.AccessibilityManager
 import android.content.Context
 import android.provider.Settings
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nativephp.mobile.ui.MaterialIcon
+import com.nativephp.mobile.ui.NativeUIThemeProvider
 import com.victorycodedev.plugins.toastkit.manager.ToastKitManager
 import com.victorycodedev.plugins.toastkit.model.*
 import kotlin.math.abs
@@ -110,8 +114,28 @@ private fun ToastKitCard(toast: ToastKitConfiguration) {
                 MaterialIcon(it.android ?: it.name ?: "circle", "Toast icon", size = 24.dp, tint = toast.style.iconColor)
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                toast.title?.let { Text(it, color = toast.style.foreground, fontWeight = FontWeight.SemiBold, fontSize = 15.sp) }
-                Text(toast.message, color = toast.style.foreground, fontSize = 14.sp)
+                toast.title?.let { title ->
+                    Text(
+                        text = title,
+                        color = toast.style.foreground,
+                        fontSize = toast.titleText?.size?.let(::toastTextSize) ?: 15.sp,
+                        fontWeight = toast.titleText?.weight?.let(::toastTextWeight) ?: FontWeight.SemiBold,
+                        fontStyle = toast.titleText?.italic?.let { if (it) FontStyle.Italic else FontStyle.Normal },
+                        fontFamily = toast.titleText?.font?.let(::toastFontFamily),
+                        textAlign = toast.titleText?.align?.let(::toastTextAlign) ?: TextAlign.Left,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                Text(
+                    text = toast.message,
+                    color = toast.style.foreground,
+                    fontSize = toast.text?.size?.let(::toastTextSize) ?: toastTextSize(ToastKitTextSize.BASE),
+                    fontWeight = toast.text?.weight?.let(::toastTextWeight) ?: FontWeight.Medium,
+                    fontStyle = toast.text?.italic?.let { if (it) FontStyle.Italic else FontStyle.Normal },
+                    fontFamily = toast.text?.font?.let(::toastFontFamily),
+                    textAlign = toast.text?.align?.let(::toastTextAlign) ?: TextAlign.Left,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
             toast.action?.let { action ->
                 Text(action.label, color = toast.style.actionColor, fontWeight = FontWeight.Bold,
@@ -125,3 +149,27 @@ private fun ToastKitCard(toast: ToastKitConfiguration) {
         }
     }
 }
+
+private fun toastTextSize(size: ToastKitTextSize) = when (size) {
+    ToastKitTextSize.XS -> 11.sp
+    ToastKitTextSize.SM -> 13.sp
+    ToastKitTextSize.BASE -> 14.sp
+    ToastKitTextSize.LG -> 16.sp
+    ToastKitTextSize.XL -> 18.sp
+}
+
+private fun toastTextWeight(weight: ToastKitTextWeight) = when (weight) {
+    ToastKitTextWeight.NORMAL -> FontWeight.Normal
+    ToastKitTextWeight.MEDIUM -> FontWeight.Medium
+    ToastKitTextWeight.SEMIBOLD -> FontWeight.SemiBold
+    ToastKitTextWeight.BOLD -> FontWeight.Bold
+}
+
+private fun toastTextAlign(align: ToastKitTextAlign) = when (align) {
+    ToastKitTextAlign.LEFT -> TextAlign.Left
+    ToastKitTextAlign.CENTER -> TextAlign.Center
+    ToastKitTextAlign.RIGHT -> TextAlign.Right
+}
+
+private fun toastFontFamily(font: String): FontFamily? =
+    NativeUIThemeProvider.resolveChromeFontFamily(font)

@@ -3,6 +3,9 @@ export const allowed = {
   position: ["top", "center", "bottom"],
   animation: ["fade", "slide", "scale", "spring"],
   strategy: ["queue", "stack"],
+  size: ["xs", "sm", "base", "lg", "xl"],
+  weight: ["normal", "medium", "semibold", "bold"],
+  align: ["left", "center", "right"],
 };
 export function nonEmpty(value, name) {
   if (typeof value !== "string" || value.trim() === "")

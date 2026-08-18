@@ -57,11 +57,18 @@ private struct ToastKitView: View {
                     .font(.system(size: 21, weight: .semibold)).foregroundStyle(toast.style.iconColor)
                     .accessibilityHidden(true)
             }
-            VStack(alignment: .leading, spacing: 2) {
-                if let title = toast.title { Text(title).font(.subheadline.weight(.semibold)) }
-                Text(toast.message).font(.subheadline).fixedSize(horizontal: false, vertical: true)
+        VStack(alignment: .leading, spacing: 2) {
+            if let title = toast.title {
+                Text(title)
+                    .font(toastKitFont(toast.titleText, defaultSize: 15, defaultWeight: .semibold))
+                    .applyToastKitTextAlignment(toast.titleText?.align)
             }
-            .foregroundStyle(toast.style.foreground).frame(maxWidth: .infinity, alignment: .leading)
+            Text(toast.message)
+                .font(toastKitFont(toast.text, defaultSize: toastKitFontSize(.base), defaultWeight: .medium))
+                .applyToastKitTextAlignment(toast.text?.align)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .foregroundStyle(toast.style.foreground).frame(maxWidth: .infinity, alignment: .leading)
             if let action = toast.action {
                 Button(action.label) { ToastKitManager.shared.pressAction(toastId: toast.id, actionId: action.id) }
                     .font(.subheadline.weight(.bold)).foregroundStyle(toast.style.actionColor)
@@ -121,5 +128,70 @@ private extension View {
     @ViewBuilder
     func toastKitConditional<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
         if condition { transform(self) } else { self }
+    }
+
+    @ViewBuilder
+    func applyToastKitTextAlignment(_ align: ToastKitTextAlign?) -> some View {
+        if let align {
+            self
+                .multilineTextAlignment(toastKitTextAlignment(align))
+                .frame(maxWidth: .infinity, alignment: toastKitFrameAlignment(align))
+        } else {
+            self
+        }
+    }
+}
+
+private func toastKitFont(_ typography: ToastKitTypographyConfiguration?, defaultSize: CGFloat, defaultWeight: Font.Weight) -> Font {
+    let size = typography?.size.map { toastKitFontSize($0) } ?? defaultSize
+    let weight = typography?.weight.map { toastKitFontWeight($0) } ?? defaultWeight
+    var font: Font
+    if let name = typography?.font, !name.isEmpty {
+        if let postScriptName = NativeChromeFontResolver.postScriptName(for: name) {
+            font = .custom(postScriptName, size: size)
+        } else {
+            font = .system(size: size, weight: weight)
+        }
+    } else {
+        font = .system(size: size, weight: weight)
+    }
+    if typography?.italic == true { font = font.italic() }
+    return font
+}
+
+private func toastKitFontSize(_ size: ToastKitTextSize) -> CGFloat {
+    switch size {
+    case .xs: return 11
+    case .sm: return 13
+    case .base: return 14
+    case .lg: return 16
+    case .xl: return 18
+    }
+}
+
+private func toastKitFontWeight(_ weight: ToastKitTextWeight) -> Font.Weight {
+    switch weight {
+    case .normal: return .regular
+    case .medium: return .medium
+    case .semibold: return .semibold
+    case .bold: return .bold
+    }
+}
+
+private func toastKitTextAlignment(_ align: ToastKitTextAlign?) -> TextAlignment {
+    switch align {
+    case .left: return .leading
+    case .center: return .center
+    case .right: return .trailing
+    case nil: return .leading
+    }
+}
+
+private func toastKitFrameAlignment(_ align: ToastKitTextAlign?) -> Alignment {
+    switch align {
+    case .left: return .leading
+    case .center: return .center
+    case .right: return .trailing
+    case nil: return .leading
     }
 }

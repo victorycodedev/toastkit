@@ -139,6 +139,72 @@ Toast::make('Rated')->icon(ios: 'star.fill')->show();
 
 See NativePHP's [Icon name reference](https://nativephp.com/docs/mobile/4/edge-components/icon#icon-name-reference) for the names guaranteed to work consistently on both platforms.
 
+## Typography
+
+Customize the message and title typography independently with `text()` and `titleText()`. Every argument is optional — anything left unset falls back to the native defaults (message: `base` size, `medium` weight, left-aligned, non-italic; title: left-aligned, non-italic, semibold weight):
+
+```php
+Toast::make('Your download is complete')
+    ->title('Download complete')
+    ->text(
+        font: 'Inter',
+        size: 'sm',
+        weight: 'normal',
+    )
+    ->titleText(
+        size: 'lg',
+        weight: 'bold',
+    )
+    ->success()
+    ->show();
+```
+
+| Option | Values |
+| --- | --- |
+| `font` | A font name resolvable by the platform. |
+| `size` | `xs`, `sm`, `base`, `lg`, `xl` |
+| `weight` | `normal`, `medium`, `semibold`, `bold` |
+| `align` | `left`, `center`, `right` |
+| `italic` | `true` or `false` |
+
+Typed enums are available too — `ToastTextSize`, `ToastTextWeight`, `ToastTextAlign`:
+
+```php
+use Victorycodedev\ToastKit\Enums\ToastTextAlign;
+use Victorycodedev\ToastKit\Enums\ToastTextSize;
+use Victorycodedev\ToastKit\Enums\ToastTextWeight;
+
+Toast::make('Saved')
+    ->text(
+        size: ToastTextSize::Small,
+        weight: ToastTextWeight::Medium,
+        align: ToastTextAlign::Center,
+    )
+    ->show();
+```
+
+Typography updates follow the same sparse rules as the rest of `update()` — only the supplied values change:
+
+```php
+Toast::update($id)
+    ->message('Download complete')
+    ->text(weight: 'semibold')
+    ->success()
+    ->show();
+```
+
+This changes only the message weight; `font`, `size`, `align`, and `italic` are left untouched.
+
+### Font resolution
+
+`font` delegates to NativePHP's font resolver, so it honors the `fonts` array in `config/native-ui.php`. Pass a bundled font file's basename (`Inter-Bold`) or a config alias (`accent`, `body`, `headline`, …) and ToastKit renders the typeface your app already configured:
+
+```php
+Toast::make('Saved')->text(font: 'accent')->show();
+```
+
+A name that can't be resolved falls back to the system font on both platforms. ToastKit does not bundle, download, or register fonts itself — it renders whatever NativePHP resolves.
+
 ## Updating Toasts
 
 `update()` changes a visible or queued toast in place, keeping the same ID:
@@ -555,6 +621,8 @@ Native::test(ProfileScreen::class)
 | `id(string $id)` | Set a custom ID instead of the generated UUID. |
 | `message(string $message)` | Set the message text (required). |
 | `title(?string $title)` | Set or clear an optional title. |
+| `text(?string $font = null, $size = null, $weight = null, $align = null, ?bool $italic = null)` | Configure message typography. See [Typography](#typography). |
+| `titleText(?string $font = null, $size = null, $weight = null, $align = null, ?bool $italic = null)` | Configure title typography. See [Typography](#typography). |
 | `success()` / `error()` / `warning()` / `info()` / `neutral()` | Set the variant. |
 | `variant(ToastVariant\|string $variant)` | Set the variant by enum or string. |
 | `icon(?string $name = null, $ios = null, $android = null)` | Set an icon using a NativePHP icon name, with optional SF Symbol (`ios:`) / Material Icon (`android:`) overrides. See [Icons](#icons). |
@@ -590,6 +658,9 @@ Native::test(ProfileScreen::class)
 | `ToastPosition` | `top`, `center`, `bottom` |
 | `ToastAnimation` | `fade`, `slide`, `scale`, `spring` |
 | `ToastStrategy` | `queue`, `stack` |
+| `ToastTextSize` | `xs`, `sm`, `base`, `lg`, `xl` |
+| `ToastTextWeight` | `normal`, `medium`, `semibold`, `bold` |
+| `ToastTextAlign` | `left`, `center`, `right` |
 | `ToastDismissReason` | `timeout`, `swipe`, `programmatic`, `action`, `replaced` |
 
 ### Defaults

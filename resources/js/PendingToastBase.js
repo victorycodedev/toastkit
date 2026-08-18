@@ -19,6 +19,12 @@ export class PendingToastBase {
   title(value) {
     return this.set("title", value === null ? null : nonEmpty(value, "title"));
   }
+  text(options = {}) {
+    return this.typography("text", options);
+  }
+  titleText(options = {}) {
+    return this.typography("title_text", options);
+  }
   variant(value) {
     return this.set("variant", oneOf(value, "variant"));
   }
@@ -72,6 +78,24 @@ export class PendingToastBase {
       id: nonEmpty(id, "action ID"),
       label: nonEmpty(label, "action label"),
     });
+  }
+  typography(group, options) {
+    const values = {};
+    if (options.font !== undefined)
+      values.font = nonEmpty(options.font, "text font");
+    if (options.size !== undefined) values.size = oneOf(options.size, "size");
+    if (options.weight !== undefined)
+      values.weight = oneOf(options.weight, "weight");
+    if (options.align !== undefined)
+      values.align = oneOf(options.align, "align");
+    if (options.italic !== undefined) {
+      if (typeof options.italic !== "boolean")
+        throw new TypeError("italic must be boolean");
+      values.italic = options.italic;
+    }
+    if (!Object.keys(values).length) return this;
+    this.values[group] = { ...(this.values[group] ?? {}), ...values };
+    return this;
   }
   style(key, value) {
     this.values.style ??= {};

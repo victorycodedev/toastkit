@@ -41,6 +41,8 @@ enum ToastKitBridgeNormalizer {
         if let value = changes["strategy"] { next.strategy = try enumValue(value, "strategy") }
         if let value = changes["max_visible"] { next.maxVisible = try positiveInt(value, "max_visible") }
         if let value = changes["style"] { next.style = try style(value, fallback: next.style) }
+        if changes.keys.contains("text") { next.text = try mergeTypography(next.text, changes["text"], "text") }
+        if changes.keys.contains("title_text") { next.titleText = try mergeTypography(next.titleText, changes["title_text"], "title_text") }
 
         if changes.keys.contains("duration") || changes.keys.contains("persistent") {
             let persistent = try changes["persistent"].map { try boolean($0, "persistent") } ?? false
@@ -66,7 +68,9 @@ enum ToastKitBridgeNormalizer {
             action: try values["action"].map(action),
             style: try style(values["style"] ?? [String: Any](), fallback: variantStyle(variantName)),
             strategy: try enumValue(values["strategy"] ?? "queue", "strategy"),
-            maxVisible: try positiveInt(values["max_visible"] ?? 3, "max_visible")
+            maxVisible: try positiveInt(values["max_visible"] ?? 3, "max_visible"),
+            text: try values["text"].map(typography),
+            titleText: try values["title_text"].map(typography)
         )
     }
 
@@ -81,6 +85,31 @@ enum ToastKitBridgeNormalizer {
     private static func action(_ value: Any) throws -> ToastKitActionConfiguration {
         guard let map = value as? [String: Any] else { throw ToastKitInputError.invalid("action must be an object") }
         return ToastKitActionConfiguration(id: try requiredString(map, "id"), label: try requiredString(map, "label"))
+    }
+
+    private static func typography(_ value: Any) throws -> ToastKitTypographyConfiguration {
+        guard let map = value as? [String: Any] else { throw ToastKitInputError.invalid("typography must be an object") }
+        guard !map.isEmpty else { throw ToastKitInputError.invalid("typography must not be empty") }
+        var result = ToastKitTypographyConfiguration(font: nil, size: nil, weight: nil, align: nil, italic: nil)
+        if let v = map["font"] { result.font = try nonEmptyString(v, "font") }
+        if let v = map["size"] { result.size = try enumValue(v, "text size") }
+        if let v = map["weight"] { result.weight = try enumValue(v, "text weight") }
+        if let v = map["align"] { result.align = try enumValue(v, "text align") }
+        if let v = map["italic"] { result.italic = try boolean(v, "italic") }
+        return result
+    }
+
+    private static func mergeTypography(_ current: ToastKitTypographyConfiguration?, _ value: Any?, _ name: String) throws -> ToastKitTypographyConfiguration? {
+        guard value != nil, !(value is NSNull) else { return current }
+        guard let map = value as? [String: Any] else { throw ToastKitInputError.invalid("\(name) must be an object") }
+        guard !map.isEmpty else { return current }
+        var next = current ?? ToastKitTypographyConfiguration(font: nil, size: nil, weight: nil, align: nil, italic: nil)
+        if let value = map["font"] { next.font = try nonEmptyString(value, "font") }
+        if let value = map["size"] { next.size = try enumValue(value, "text size") }
+        if let value = map["weight"] { next.weight = try enumValue(value, "text weight") }
+        if let value = map["align"] { next.align = try enumValue(value, "text align") }
+        if let value = map["italic"] { next.italic = try boolean(value, "italic") }
+        return next
     }
 
     private static func style(_ value: Any, fallback: ToastKitStyleConfiguration) throws -> ToastKitStyleConfiguration {

@@ -7,12 +7,16 @@ use InvalidArgumentException;
 use Victorycodedev\ToastKit\Enums\ToastAnimation;
 use Victorycodedev\ToastKit\Enums\ToastPosition;
 use Victorycodedev\ToastKit\Enums\ToastStrategy;
+use Victorycodedev\ToastKit\Enums\ToastTextAlign;
+use Victorycodedev\ToastKit\Enums\ToastTextSize;
+use Victorycodedev\ToastKit\Enums\ToastTextWeight;
 use Victorycodedev\ToastKit\Enums\ToastVariant;
 
 trait ConfiguresToast
 {
     abstract protected function put(string $key, mixed $value): static;
     abstract protected function putStyle(string $key, mixed $value): static;
+    abstract protected function putTypography(string $group, array $values): static;
 
     public function message(string $message): static
     {
@@ -24,6 +28,27 @@ trait ConfiguresToast
     {
         return $this->put('title', $title);
     }
+
+    public function text(
+        ?string $font = null,
+        ToastTextSize|string|null $size = null,
+        ToastTextWeight|string|null $weight = null,
+        ToastTextAlign|string|null $align = null,
+        ?bool $italic = null,
+    ): static {
+        return $this->typography('text', $font, $size, $weight, $align, $italic);
+    }
+
+    public function titleText(
+        ?string $font = null,
+        ToastTextSize|string|null $size = null,
+        ToastTextWeight|string|null $weight = null,
+        ToastTextAlign|string|null $align = null,
+        ?bool $italic = null,
+    ): static {
+        return $this->typography('title_text', $font, $size, $weight, $align, $italic);
+    }
+
     public function success(): static
     {
         return $this->variant(ToastVariant::Success);
@@ -166,6 +191,27 @@ trait ConfiguresToast
         $case = $enum::tryFrom($value);
         if ($case === null) throw new InvalidArgumentException("Invalid toast {$label}: {$value}.");
         return $case->value;
+    }
+
+    private function typography(
+        string $group,
+        ?string $font,
+        ToastTextSize|string|null $size,
+        ToastTextWeight|string|null $weight,
+        ToastTextAlign|string|null $align,
+        ?bool $italic,
+    ): static {
+        $values = [];
+
+        if ($font !== null) $values['font'] = $this->nullableNonEmpty($font, 'Text font');
+        if ($size !== null) $values['size'] = $this->enumValue(ToastTextSize::class, $size, 'text size');
+        if ($weight !== null) $values['weight'] = $this->enumValue(ToastTextWeight::class, $weight, 'text weight');
+        if ($align !== null) $values['align'] = $this->enumValue(ToastTextAlign::class, $align, 'text align');
+        if ($italic !== null) $values['italic'] = $italic;
+
+        if ($values === []) return $this;
+
+        return $this->putTypography($group, $values);
     }
 
     private function enumString(BackedEnum|string|null $value): ?string

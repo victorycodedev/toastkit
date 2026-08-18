@@ -5,9 +5,19 @@ import androidx.compose.ui.graphics.Color
 internal enum class ToastKitPosition { TOP, CENTER, BOTTOM }
 internal enum class ToastKitAnimation { FADE, SLIDE, SCALE, SPRING }
 internal enum class ToastKitStrategy { QUEUE, STACK }
+internal enum class ToastKitTextSize { XS, SM, BASE, LG, XL }
+internal enum class ToastKitTextWeight { NORMAL, MEDIUM, SEMIBOLD, BOLD }
+internal enum class ToastKitTextAlign { LEFT, CENTER, RIGHT }
 
 internal data class ToastKitIcon(val name: String?, val android: String?)
 internal data class ToastKitAction(val id: String, val label: String)
+internal data class ToastKitTypography(
+    val font: String? = null,
+    val size: ToastKitTextSize? = null,
+    val weight: ToastKitTextWeight? = null,
+    val align: ToastKitTextAlign? = null,
+    val italic: Boolean? = null,
+)
 internal data class ToastKitStyle(
     val background: Color,
     val foreground: Color,
@@ -33,6 +43,8 @@ internal data class ToastKitConfiguration(
     val style: ToastKitStyle,
     val strategy: ToastKitStrategy,
     val maxVisible: Int,
+    val text: ToastKitTypography? = null,
+    val titleText: ToastKitTypography? = null,
 )
 
 internal data class ToastKitState(

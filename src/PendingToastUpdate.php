@@ -37,4 +37,10 @@ class PendingToastUpdate
         $this->changes['style'][$key] = $value;
         return $this;
     }
+
+    protected function putTypography(string $group, array $values): static
+    {
+        $this->changes[$group] = array_merge($this->changes[$group] ?? [], $values);
+        return $this;
+    }
 }

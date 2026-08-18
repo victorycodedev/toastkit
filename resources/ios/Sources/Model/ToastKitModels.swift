@@ -3,6 +3,9 @@ import SwiftUI
 enum ToastKitPosition: String { case top, center, bottom }
 enum ToastKitAnimationKind: String { case fade, slide, scale, spring }
 enum ToastKitStrategy: String { case queue, stack }
+enum ToastKitTextSize: String { case xs, sm, base, lg, xl }
+enum ToastKitTextWeight: String { case normal, medium, semibold, bold }
+enum ToastKitTextAlign: String { case left, center, right }
 
 struct ToastKitIconConfiguration {
     let name: String?
@@ -12,6 +15,14 @@ struct ToastKitIconConfiguration {
 struct ToastKitActionConfiguration {
     let id: String
     let label: String
+}
+
+struct ToastKitTypographyConfiguration {
+    var font: String?
+    var size: ToastKitTextSize?
+    var weight: ToastKitTextWeight?
+    var align: ToastKitTextAlign?
+    var italic: Bool?
 }
 
 struct ToastKitStyleConfiguration {
@@ -39,6 +50,8 @@ struct ToastKitConfiguration: Identifiable {
     var style: ToastKitStyleConfiguration
     var strategy: ToastKitStrategy
     var maxVisible: Int
+    var text: ToastKitTypographyConfiguration?
+    var titleText: ToastKitTypographyConfiguration?
 }
 
 struct ToastKitState {

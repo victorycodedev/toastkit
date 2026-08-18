@@ -208,3 +208,81 @@ test("validation rejects bad input", () => {
   assert.throws(() => Toast.update(""), /toast ID/);
   assert.throws(() => new PendingToastUpdate("one").payload(), /change/);
 });
+
+test("text() sends the full typography payload", () => {
+  const payload = Toast.make("Body")
+    .text({
+      font: "Inter",
+      size: "sm",
+      weight: "medium",
+      align: "center",
+      italic: false,
+    })
+    .payload();
+  assert.deepEqual(payload.text, {
+    font: "Inter",
+    size: "sm",
+    weight: "medium",
+    align: "center",
+    italic: false,
+  });
+});
+
+test("titleText() sends the title typography payload", () => {
+  const payload = Toast.make("Body")
+    .title("Heading")
+    .titleText({ size: "lg", weight: "bold" })
+    .payload();
+  assert.deepEqual(payload.title_text, { size: "lg", weight: "bold" });
+});
+
+test("text() only sends supplied options", () => {
+  assert.deepEqual(Toast.make("x").text({ weight: "semibold" }).payload().text, {
+    weight: "semibold",
+  });
+  assert.deepEqual(Toast.make("x").text({ size: "sm", align: "center" }).payload().text, {
+    size: "sm",
+    align: "center",
+  });
+});
+
+test("message and title typography are independent", () => {
+  const payload = Toast.make("Body")
+    .title("Heading")
+    .text({ size: "sm" })
+    .titleText({ size: "lg", weight: "bold" })
+    .payload();
+  assert.deepEqual(payload.text, { size: "sm" });
+  assert.deepEqual(payload.title_text, { size: "lg", weight: "bold" });
+});
+
+test("text() merges repeated calls", () => {
+  const payload = Toast.make("x").text({ font: "Inter" }).text({ weight: "bold" }).payload();
+  assert.deepEqual(payload.text, { font: "Inter", weight: "bold" });
+});
+
+test("toast without typography omits text keys", () => {
+  const payload = Toast.success("Saved").payload();
+  assert.ok(!("text" in payload));
+  assert.ok(!("title_text" in payload));
+});
+
+test("update() sends sparse typography changes", async () => {
+  const calls = [];
+  fakeBridge(calls);
+  await Toast.update("upload").text({ weight: "bold" }).show();
+  assert.deepEqual(calls[0], {
+    method: "ToastKit.Update",
+    params: { id: "upload", changes: { text: { weight: "bold" } } },
+  });
+  resetFetch();
+});
+
+test("typography validation rejects bad input", () => {
+  assert.throws(() => Toast.make("x").text({ size: "huge" }), /size/);
+  assert.throws(() => Toast.make("x").text({ weight: "heavy" }), /weight/);
+  assert.throws(() => Toast.make("x").text({ align: "justify" }), /align/);
+  assert.throws(() => Toast.make("x").text({ font: "" }), /font/);
+  assert.throws(() => Toast.make("x").text({ italic: "yes" }), /italic/);
+  assert.throws(() => Toast.make("x").titleText({ size: "xxl" }), /size/);
+});
