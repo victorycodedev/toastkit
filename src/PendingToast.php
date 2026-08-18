@@ -2,7 +2,6 @@
 
 namespace Victorycodedev\ToastKit;
 
-use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Victorycodedev\ToastKit\Concerns\ConfiguresToast;
 
@@ -15,7 +14,7 @@ class PendingToast
 
     public function __construct(private readonly ToastKit $toastKit, ?string $message = null)
     {
-        $this->id = (string) Str::uuid();
+        $this->id = self::uuid();
         if ($message !== null) $this->message($message);
     }
 
@@ -97,5 +96,22 @@ class PendingToast
             'info' => ['icon' => ['name' => 'info'], 'style' => ['background' => '#1E40AF', 'foreground' => '#FFFFFF', 'icon_color' => '#93C5FD']],
             default => ['style' => ['background' => '#1F2937', 'foreground' => '#FFFFFF']],
         };
+    }
+
+    private static function uuid(): string
+    {
+        $bytes = random_bytes(16);
+        $bytes[6] = chr((ord($bytes[6]) & 0x0f) | 0x40);
+        $bytes[8] = chr((ord($bytes[8]) & 0x3f) | 0x80);
+        $hex = bin2hex($bytes);
+
+        return sprintf(
+            '%s-%s-%s-%s-%s',
+            substr($hex, 0, 8),
+            substr($hex, 8, 4),
+            substr($hex, 12, 4),
+            substr($hex, 16, 4),
+            substr($hex, 20),
+        );
     }
 }
