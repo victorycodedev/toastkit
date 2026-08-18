@@ -43,7 +43,7 @@
         "pestphp/pest": "^4.0"
     },
     "scripts": {
-        "test": "@php vendor/bin/pest"
+        "test": "@php vendor/bin/pest --cache-directory .phpunit.cache"
     },
     "config": {
         "allow-plugins": {
