@@ -23,5 +23,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Composer requirement raised to PHP `^8.3` and NativePHP Mobile `^4.1`.
+- Composer requirement raised to PHP `^8.4` and NativePHP Mobile `^4.1`.
 - Pest upgraded to `^4.0`.

@@ -684,7 +684,7 @@ Native::test(ProfileScreen::class)
 
 | Requirement | Version |
 | --- | --- |
-| PHP | 8.3+ |
+| PHP | 8.4+ |
 | NativePHP Mobile | 4.1+ |
 | Android | API 29+ (Android 10) |
 | iOS | 18.0+ |

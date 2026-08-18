@@ -21,7 +21,7 @@
         }
     ],
     "require": {
-        "php": "^8.3",
+        "php": "^8.4",
         "nativephp/mobile": "^4.1"
     },
     "autoload": {
@@ -40,7 +40,6 @@
         }
     },
     "require-dev": {
-        "laravel/framework": "^13.0",
         "pestphp/pest": "^4.0"
     },
     "scripts": {
