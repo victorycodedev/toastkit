@@ -75,12 +75,12 @@ trait ConfiguresToast
         return $this->put('variant', $this->enumValue(ToastVariant::class, $variant, 'variant'));
     }
 
-    public function icon(?string $name = null, BackedEnum|string|null $ios = null, BackedEnum|string|null $android = null): static
+    public function icon(?string $name = null, ?string $ios = null, ?string $android = null): static
     {
         $icon = array_filter([
             'name' => $this->nullableNonEmpty($name, 'Icon name'),
-            'ios' => $this->enumString($ios),
-            'android' => $this->enumString($android),
+            'ios' => $this->nullableNonEmpty($ios, 'iOS icon name'),
+            'android' => $this->nullableNonEmpty($android, 'Android icon name'),
         ], static fn($value) => $value !== null);
         if ($icon === []) throw new InvalidArgumentException('An icon name or platform override is required.');
         return $this->put('icon', $icon);
@@ -212,11 +212,6 @@ trait ConfiguresToast
         if ($values === []) return $this;
 
         return $this->putTypography($group, $values);
-    }
-
-    private function enumString(BackedEnum|string|null $value): ?string
-    {
-        return $value instanceof BackedEnum ? (string) $value->value : $value;
     }
 
     private function nullableNonEmpty(?string $value, string $label): ?string

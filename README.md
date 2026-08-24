@@ -625,7 +625,7 @@ Native::test(ProfileScreen::class)
 | `titleText(?string $font = null, $size = null, $weight = null, $align = null, ?bool $italic = null)` | Configure title typography. See [Typography](#typography). |
 | `success()` / `error()` / `warning()` / `info()` / `neutral()` | Set the variant. |
 | `variant(ToastVariant\|string $variant)` | Set the variant by enum or string. |
-| `icon(?string $name = null, $ios = null, $android = null)` | Set an icon using a NativePHP icon name, with optional SF Symbol (`ios:`) / Material Icon (`android:`) overrides. See [Icons](#icons). |
+| `icon(?string $name = null, ?string $ios = null, ?string $android = null)` | Set an icon using string names, with optional SF Symbol (`ios:`) / Material Icon (`android:`) overrides. See [Icons](#icons). |
 | `position(ToastPosition\|string $position)` | `top`, `center`, or `bottom`. |
 | `duration(int $milliseconds)` | Set the visible duration (makes the toast timed). |
 | `persistent(bool $persistent = true)` | Make the toast persistent (no timeout). |
