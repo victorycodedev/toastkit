@@ -49,6 +49,7 @@ internal object ToastKitManager {
     }
 
     private fun canAdmit(configuration: ToastKitConfiguration): Boolean {
+        if (exiting.isNotEmpty()) return false
         val current = visible.mapNotNull { states[it.id]?.configuration }
         return when (configuration.strategy) {
             ToastKitStrategy.QUEUE -> current.isEmpty()
@@ -87,10 +88,10 @@ internal object ToastKitManager {
         main.postDelayed({
             rendered.removeAll { it.id == id }
             exiting.remove(id)
+            if (promote) promote()
         }, exitDuration)
         states.remove(id)
         ToastKitEventDispatcher.dismissed(id, reason)
-        if (promote) promote()
     }
 
     private fun promote() {

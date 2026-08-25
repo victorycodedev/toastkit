@@ -49,7 +49,9 @@ internal fun ToastKitHost(position: ToastKitPosition) {
         verticalArrangement = vertical,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        items.forEach { ToastKitCard(it) }
+        items.forEach { toast ->
+            key(toast.id) { ToastKitCard(toast) }
+        }
     }
 }
 
