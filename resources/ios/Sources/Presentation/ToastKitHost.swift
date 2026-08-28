@@ -105,7 +105,7 @@ private struct ToastKitView: View {
         VStack(alignment: .leading, spacing: 2) {
             if let title = toast.title {
                 Text(title)
-                    .font(toastKitFont(toast.titleText, defaultSize: 15, defaultWeight: .semibold))
+                    .font(toastKitFont(toast.titleText, defaultSize: 16, defaultWeight: .semibold))
                     .applyToastKitTextAlignment(toast.titleText?.align)
             }
             Text(toast.message)
@@ -215,11 +215,11 @@ private func toastKitFont(_ typography: ToastKitTypographyConfiguration?, defaul
 
 private func toastKitFontSize(_ size: ToastKitTextSize) -> CGFloat {
     switch size {
-    case .xs: return 11
-    case .sm: return 13
-    case .base: return 14
-    case .lg: return 16
-    case .xl: return 18
+    case .xs: return 12
+    case .sm: return 14
+    case .base: return 15
+    case .lg: return 17
+    case .xl: return 19
     }
 }
 

@@ -136,7 +136,7 @@ private fun ToastKitCard(toast: ToastKitConfiguration) {
                     Text(
                         text = title,
                         color = toast.style.foreground,
-                        fontSize = toast.titleText?.size?.let(::toastTextSize) ?: 15.sp,
+                        fontSize = toast.titleText?.size?.let(::toastTextSize) ?: 16.sp,
                         fontWeight = toast.titleText?.weight?.let(::toastTextWeight) ?: FontWeight.SemiBold,
                         fontStyle = toast.titleText?.italic?.let { if (it) FontStyle.Italic else FontStyle.Normal },
                         fontFamily = toast.titleText?.font?.let(::toastFontFamily),
@@ -209,11 +209,11 @@ private fun revealAlignment(toast: ToastKitConfiguration): Alignment.Horizontal 
 }
 
 private fun toastTextSize(size: ToastKitTextSize) = when (size) {
-    ToastKitTextSize.XS -> 11.sp
-    ToastKitTextSize.SM -> 13.sp
-    ToastKitTextSize.BASE -> 14.sp
-    ToastKitTextSize.LG -> 16.sp
-    ToastKitTextSize.XL -> 18.sp
+    ToastKitTextSize.XS -> 12.sp
+    ToastKitTextSize.SM -> 14.sp
+    ToastKitTextSize.BASE -> 15.sp
+    ToastKitTextSize.LG -> 17.sp
+    ToastKitTextSize.XL -> 19.sp
 }
 
 private fun toastTextWeight(weight: ToastKitTextWeight) = when (weight) {
