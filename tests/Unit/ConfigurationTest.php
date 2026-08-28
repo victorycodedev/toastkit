@@ -4,6 +4,7 @@ use Victorycodedev\ToastKit\Enums\ToastAnimation;
 use Victorycodedev\ToastKit\Enums\ToastDirection;
 use Victorycodedev\ToastKit\Enums\ToastPosition;
 use Victorycodedev\ToastKit\Enums\ToastStrategy;
+use Victorycodedev\ToastKit\Exceptions\InvalidToastConfigurationException;
 
 // ── Content ────────────────────────────────────────────────────────────────
 
@@ -45,7 +46,7 @@ it('sets a platform override without a logical name', function () {
 });
 
 it('rejects an icon with no name or overrides', function () {
-    expect(fn () => $this->kit->make('x')->icon())->toThrow(InvalidArgumentException::class);
+    expect(fn () => $this->kit->make('x')->icon())->toThrow(InvalidToastConfigurationException::class);
 });
 
 it('sets an action with a label and ID', function () {

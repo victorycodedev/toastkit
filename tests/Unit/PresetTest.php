@@ -39,7 +39,8 @@ it('throws package exceptions for invalid presets', function () {
 it('provides one catchable package exception hierarchy', function () {
     expect(new PresetNotFoundException('missing'))->toBeInstanceOf(ToastKitException::class)
         ->and(new InvalidToastConfigurationException('invalid'))->toBeInstanceOf(ToastKitException::class)
-        ->and(new ToastKitException('compatible'))->toBeInstanceOf(InvalidArgumentException::class);
+        ->and(new ToastKitException('runtime'))->toBeInstanceOf(RuntimeException::class)
+        ->and(new ToastKitException('package-owned'))->not->toBeInstanceOf(InvalidArgumentException::class);
 });
 
 it('keeps preset configuration while later updates stay sparse', function () {

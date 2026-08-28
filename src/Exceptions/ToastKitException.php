@@ -2,6 +2,6 @@
 
 namespace Victorycodedev\ToastKit\Exceptions;
 
-use InvalidArgumentException;
+use RuntimeException;
 
-class ToastKitException extends InvalidArgumentException {}
+class ToastKitException extends RuntimeException {}

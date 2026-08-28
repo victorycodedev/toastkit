@@ -29,5 +29,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Breaking:** ToastKit's public exceptions now extend the package-owned `ToastKitException` base, which extends `RuntimeException`. Replace ToastKit-specific `InvalidArgumentException` catches with `ToastKitException`.
 - Composer requirement raised to PHP `^8.4` and NativePHP Mobile `^4.1`.
 - Pest upgraded to `^4.0`.

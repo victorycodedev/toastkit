@@ -1,5 +1,7 @@
 <?php
 
+use Victorycodedev\ToastKit\Exceptions\InvalidToastConfigurationException;
+
 use Victorycodedev\ToastKit\Enums\ToastTextAlign;
 use Victorycodedev\ToastKit\Enums\ToastTextSize;
 use Victorycodedev\ToastKit\Enums\ToastTextWeight;
@@ -152,26 +154,26 @@ it('sends message and typography together in an update', function () {
 // ── Validation ─────────────────────────────────────────────────────────────
 
 it('rejects an invalid text size', function () {
-    expect(fn() => $this->kit->make('x')->text(size: 'huge'))->toThrow(InvalidArgumentException::class);
+    expect(fn() => $this->kit->make('x')->text(size: 'huge'))->toThrow(InvalidToastConfigurationException::class);
 });
 
 it('rejects an invalid text weight', function () {
-    expect(fn() => $this->kit->make('x')->text(weight: 'heavy'))->toThrow(InvalidArgumentException::class);
+    expect(fn() => $this->kit->make('x')->text(weight: 'heavy'))->toThrow(InvalidToastConfigurationException::class);
 });
 
 it('rejects an invalid text alignment', function () {
-    expect(fn() => $this->kit->make('x')->text(align: 'justify'))->toThrow(InvalidArgumentException::class);
+    expect(fn() => $this->kit->make('x')->text(align: 'justify'))->toThrow(InvalidToastConfigurationException::class);
 });
 
 it('rejects an empty font name', function () {
-    expect(fn() => $this->kit->make('x')->text(font: ''))->toThrow(InvalidArgumentException::class)
-        ->and(fn() => $this->kit->make('x')->titleText(font: '   '))->toThrow(InvalidArgumentException::class);
+    expect(fn() => $this->kit->make('x')->text(font: ''))->toThrow(InvalidToastConfigurationException::class)
+        ->and(fn() => $this->kit->make('x')->titleText(font: '   '))->toThrow(InvalidToastConfigurationException::class);
 });
 
 it('rejects invalid title typography values', function () {
-    expect(fn() => $this->kit->make('x')->titleText(size: 'xxl'))->toThrow(InvalidArgumentException::class)
-        ->and(fn() => $this->kit->make('x')->titleText(weight: 'black'))->toThrow(InvalidArgumentException::class)
-        ->and(fn() => $this->kit->make('x')->titleText(align: 'middle'))->toThrow(InvalidArgumentException::class);
+    expect(fn() => $this->kit->make('x')->titleText(size: 'xxl'))->toThrow(InvalidToastConfigurationException::class)
+        ->and(fn() => $this->kit->make('x')->titleText(weight: 'black'))->toThrow(InvalidToastConfigurationException::class)
+        ->and(fn() => $this->kit->make('x')->titleText(align: 'middle'))->toThrow(InvalidToastConfigurationException::class);
 });
 
 it('treats text() with no arguments as a no-op', function () {

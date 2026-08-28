@@ -300,7 +300,7 @@ Each call creates a fresh builder, and options chained afterward override the pr
 Toast::preset('syncing')->message('Syncing contacts...')->show();
 ```
 
-Defining the same name again replaces the previous definition. Missing presets throw `PresetNotFoundException`. All intentional public configuration failures extend `ToastKitException` (and remain compatible with `InvalidArgumentException`). Presets are PHP-only because they are registered in the Laravel application lifecycle.
+Defining the same name again replaces the previous definition. Missing presets throw `PresetNotFoundException`. All intentional public configuration failures extend `ToastKitException`. Presets are PHP-only because they are registered in the Laravel application lifecycle.
 
 Small applications can keep these definitions directly in `AppServiceProvider::boot()`. For larger applications, a convenient optional organization is an `App\Toasts\ToastPresets` class with a static `register()` method, called from `AppServiceProvider::boot()`. ToastKit does not generate or require this class; it simply keeps a longer preset catalog out of the provider. Precedence is: ToastKit defaults → preset → per-toast configuration → sparse update configuration.
 
@@ -387,6 +387,57 @@ return [
     App\Providers\AppServiceProvider::class,
     App\Providers\ToastServiceProvider::class,
 ];
+```
+
+### Exceptions
+
+ToastKit exposes one package-owned exception hierarchy:
+
+```text
+RuntimeException
+└── ToastKitException
+    ├── InvalidToastConfigurationException
+    └── PresetNotFoundException
+```
+
+Catch `ToastKitException` when you want to handle every error intentionally raised by ToastKit:
+
+```php
+use Victorycodedev\ToastKit\Exceptions\ToastKitException;
+
+try {
+    Toast::preset('payment-success')->message('Paid')->show();
+} catch (ToastKitException $exception) {
+    report($exception);
+}
+```
+
+Use a specific subclass when the application can recover from one particular condition, such as a missing preset:
+
+```php
+use Victorycodedev\ToastKit\Exceptions\PresetNotFoundException;
+
+try {
+    Toast::preset('payment-success');
+} catch (PresetNotFoundException $exception) {
+    // The requested preset was not registered.
+}
+```
+
+#### Migrating exception catches
+
+ToastKit exceptions no longer extend PHP's `InvalidArgumentException`. Applications that previously caught that exception for ToastKit calls should use the package base exception instead:
+
+```php
+// Before
+catch (\InvalidArgumentException $exception) {
+    // ...
+}
+
+// Now
+catch (\Victorycodedev\ToastKit\Exceptions\ToastKitException $exception) {
+    // ...
+}
 ```
 
 ## Dismissing Toasts
