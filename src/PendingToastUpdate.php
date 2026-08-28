@@ -2,8 +2,8 @@
 
 namespace Victorycodedev\ToastKit;
 
-use InvalidArgumentException;
 use Victorycodedev\ToastKit\Concerns\ConfiguresToast;
+use Victorycodedev\ToastKit\Exceptions\InvalidToastConfigurationException;
 
 class PendingToastUpdate
 {
@@ -15,7 +15,7 @@ class PendingToastUpdate
 
     public function show(): string
     {
-        if ($this->changes === []) throw new InvalidArgumentException('At least one toast change is required before show().');
+        if ($this->changes === []) throw new InvalidToastConfigurationException('At least one toast change is required before show().');
         $this->toastKit->applyUpdate($this->id, $this->changes);
         return $this->id;
     }

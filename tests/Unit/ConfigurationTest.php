@@ -1,8 +1,10 @@
 <?php
 
 use Victorycodedev\ToastKit\Enums\ToastAnimation;
+use Victorycodedev\ToastKit\Enums\ToastDirection;
 use Victorycodedev\ToastKit\Enums\ToastPosition;
 use Victorycodedev\ToastKit\Enums\ToastStrategy;
+use Victorycodedev\ToastKit\Exceptions\InvalidToastConfigurationException;
 
 // ── Content ────────────────────────────────────────────────────────────────
 
@@ -44,7 +46,7 @@ it('sets a platform override without a logical name', function () {
 });
 
 it('rejects an icon with no name or overrides', function () {
-    expect(fn () => $this->kit->make('x')->icon())->toThrow(InvalidArgumentException::class);
+    expect(fn () => $this->kit->make('x')->icon())->toThrow(InvalidToastConfigurationException::class);
 });
 
 it('sets an action with a label and ID', function () {
@@ -92,12 +94,32 @@ it('sets the animation', function (string $animation) {
     $this->kit->make('Hello')->animation($animation)->show();
 
     expect($this->calls[0][1]['animation'])->toBe($animation);
-})->with(['fade', 'slide', 'scale', 'spring']);
+})->with(['fade', 'slide', 'scale', 'spring', 'snap', 'pop', 'reveal', 'bounce']);
 
 it('accepts a ToastAnimation enum', function () {
     $this->kit->make('Hello')->animation(ToastAnimation::Slide)->show();
 
     expect($this->calls[0][1]['animation'])->toBe('slide');
+});
+
+it('sets animation direction independently', function () {
+    $this->kit->make('Hello')->direction(ToastDirection::Left)->show();
+    expect($this->calls[0][1]['direction'])->toBe('left');
+});
+
+it('accepts every direction string', function (string $direction) {
+    $this->kit->make('Hello')->direction($direction)->show();
+    expect($this->calls[0][1]['direction'])->toBe($direction);
+})->with(['auto', 'left', 'right', 'top', 'bottom']);
+
+it('clamps determinate progress', function (int|float $input, int|float $expected) {
+    $this->kit->make('Working')->progress($input)->show();
+    expect($this->calls[0][1]['progress'])->toBe($expected);
+})->with([[42, 42], [12.5, 12.5], [-2, 0], [120, 100]]);
+
+it('configures indeterminate loading', function () {
+    $this->kit->make('Working')->loading()->show();
+    expect($this->calls[0][1]['loading'])->toBeTrue();
 });
 
 it('controls swipe-to-dismiss independently', function () {

@@ -3,14 +3,15 @@
 namespace Victorycodedev\ToastKit\Concerns;
 
 use BackedEnum;
-use InvalidArgumentException;
 use Victorycodedev\ToastKit\Enums\ToastAnimation;
+use Victorycodedev\ToastKit\Enums\ToastDirection;
 use Victorycodedev\ToastKit\Enums\ToastPosition;
 use Victorycodedev\ToastKit\Enums\ToastStrategy;
 use Victorycodedev\ToastKit\Enums\ToastTextAlign;
 use Victorycodedev\ToastKit\Enums\ToastTextSize;
 use Victorycodedev\ToastKit\Enums\ToastTextWeight;
 use Victorycodedev\ToastKit\Enums\ToastVariant;
+use Victorycodedev\ToastKit\Exceptions\InvalidToastConfigurationException;
 
 trait ConfiguresToast
 {
@@ -20,7 +21,7 @@ trait ConfiguresToast
 
     public function message(string $message): static
     {
-        if (trim($message) === '') throw new InvalidArgumentException('A toast message must not be empty.');
+        if (trim($message) === '') throw new InvalidToastConfigurationException('A toast message must not be empty.');
         return $this->put('message', $message);
     }
 
@@ -82,7 +83,7 @@ trait ConfiguresToast
             'ios' => $this->nullableNonEmpty($ios, 'iOS icon name'),
             'android' => $this->nullableNonEmpty($android, 'Android icon name'),
         ], static fn($value) => $value !== null);
-        if ($icon === []) throw new InvalidArgumentException('An icon name or platform override is required.');
+        if ($icon === []) throw new InvalidToastConfigurationException('An icon name or platform override is required.');
         return $this->put('icon', $icon);
     }
 
@@ -93,7 +94,7 @@ trait ConfiguresToast
 
     public function duration(int $milliseconds): static
     {
-        if ($milliseconds <= 0) throw new InvalidArgumentException('Toast duration must be greater than zero milliseconds.');
+        if ($milliseconds <= 0) throw new InvalidToastConfigurationException('Toast duration must be greater than zero milliseconds.');
         $this->put('persistent', false);
         return $this->put('duration', $milliseconds);
     }
@@ -109,6 +110,22 @@ trait ConfiguresToast
         return $this->put('animation', $this->enumValue(ToastAnimation::class, $animation, 'animation'));
     }
 
+    public function direction(ToastDirection|string $direction): static
+    {
+        return $this->put('direction', $this->enumValue(ToastDirection::class, $direction, 'direction'));
+    }
+
+    public function progress(int|float $progress): static
+    {
+        if (! is_finite((float) $progress)) throw new InvalidToastConfigurationException('Toast progress must be a finite number.');
+        return $this->put('progress', max(0, min(100, $progress)));
+    }
+
+    public function loading(bool $loading = true): static
+    {
+        return $this->put('loading', $loading);
+    }
+
     public function swipeToDismiss(bool $enabled = true): static
     {
         return $this->put('swipe_to_dismiss', $enabled);
@@ -120,7 +137,7 @@ trait ConfiguresToast
 
     public function action(string $label, string $id): static
     {
-        if (trim($label) === '' || trim($id) === '') throw new InvalidArgumentException('Action label and ID must not be empty.');
+        if (trim($label) === '' || trim($id) === '') throw new InvalidToastConfigurationException('Action label and ID must not be empty.');
         return $this->put('action', ['id' => $id, 'label' => $label]);
     }
 
@@ -143,13 +160,13 @@ trait ConfiguresToast
 
     public function cornerRadius(float $radius): static
     {
-        if ($radius < 0) throw new InvalidArgumentException('Corner radius must not be negative.');
+        if ($radius < 0) throw new InvalidToastConfigurationException('Corner radius must not be negative.');
         return $this->putStyle('corner_radius', $radius);
     }
 
     public function padding(float $padding): static
     {
-        if ($padding < 0) throw new InvalidArgumentException('Padding must not be negative.');
+        if ($padding < 0) throw new InvalidToastConfigurationException('Padding must not be negative.');
         return $this->putStyle('padding', $padding);
     }
 
@@ -173,14 +190,14 @@ trait ConfiguresToast
 
     public function maxVisible(int $count): static
     {
-        if ($count < 1) throw new InvalidArgumentException('Maximum visible toasts must be at least one.');
+        if ($count < 1) throw new InvalidToastConfigurationException('Maximum visible toasts must be at least one.');
         return $this->put('max_visible', $count);
     }
 
     private function color(string $color): string
     {
         if (! preg_match('/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/', $color)) {
-            throw new InvalidArgumentException('Colors must use #RGB, #RRGGBB, or #AARRGGBB hexadecimal format.');
+            throw new InvalidToastConfigurationException('Colors must use #RGB, #RRGGBB, or #AARRGGBB hexadecimal format.');
         }
         return strtoupper($color);
     }
@@ -189,7 +206,7 @@ trait ConfiguresToast
     {
         if ($value instanceof $enum) return $value->value;
         $case = $enum::tryFrom($value);
-        if ($case === null) throw new InvalidArgumentException("Invalid toast {$label}: {$value}.");
+        if ($case === null) throw new InvalidToastConfigurationException("Invalid toast {$label}: {$value}.");
         return $case->value;
     }
 
@@ -216,7 +233,7 @@ trait ConfiguresToast
 
     private function nullableNonEmpty(?string $value, string $label): ?string
     {
-        if ($value !== null && trim($value) === '') throw new InvalidArgumentException("{$label} must not be empty.");
+        if ($value !== null && trim($value) === '') throw new InvalidToastConfigurationException("{$label} must not be empty.");
         return $value;
     }
 }

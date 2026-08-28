@@ -3,7 +3,8 @@ package com.victorycodedev.plugins.toastkit.model
 import androidx.compose.ui.graphics.Color
 
 internal enum class ToastKitPosition { TOP, CENTER, BOTTOM }
-internal enum class ToastKitAnimation { FADE, SLIDE, SCALE, SPRING }
+internal enum class ToastKitAnimation { FADE, SLIDE, SCALE, SPRING, SNAP, POP, REVEAL, BOUNCE }
+internal enum class ToastKitDirection { AUTO, LEFT, RIGHT, TOP, BOTTOM }
 internal enum class ToastKitStrategy { QUEUE, STACK }
 internal enum class ToastKitTextSize { XS, SM, BASE, LG, XL }
 internal enum class ToastKitTextWeight { NORMAL, MEDIUM, SEMIBOLD, BOLD }
@@ -37,6 +38,9 @@ internal data class ToastKitConfiguration(
     val position: ToastKitPosition,
     val durationMs: Long?,
     val animation: ToastKitAnimation,
+    val direction: ToastKitDirection,
+    val progress: Float?,
+    val loading: Boolean,
     val swipeToDismiss: Boolean,
     val dismissible: Boolean,
     val action: ToastKitAction?,

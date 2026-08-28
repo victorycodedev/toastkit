@@ -45,3 +45,11 @@ it('updates title and action together', function () {
         'action' => ['id' => 'retry', 'label' => 'Retry'],
     ]);
 });
+
+it('sends sparse progress and loading updates', function () {
+    $this->kit->update('upload')->progress(35.5)->show();
+    $this->kit->update('upload')->loading(false)->show();
+
+    expect($this->calls[0][1]['changes'])->toBe(['progress' => 35.5])
+        ->and($this->calls[1][1]['changes'])->toBe(['loading' => false]);
+});

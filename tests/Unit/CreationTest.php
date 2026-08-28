@@ -1,5 +1,7 @@
 <?php
 
+use Victorycodedev\ToastKit\Exceptions\InvalidToastConfigurationException;
+
 use Victorycodedev\ToastKit\PendingToast;
 
 it('builds a pending toast from make()', function () {
@@ -19,11 +21,11 @@ it('accepts a custom ID', function () {
 });
 
 it('requires a message before showing', function () {
-    expect(fn () => $this->kit->make()->show())->toThrow(InvalidArgumentException::class, 'message');
+    expect(fn () => $this->kit->make()->show())->toThrow(InvalidToastConfigurationException::class, 'message');
 });
 
 it('requires a non-empty message', function () {
-    expect(fn () => $this->kit->make('   '))->toThrow(InvalidArgumentException::class, 'message');
+    expect(fn () => $this->kit->make('   '))->toThrow(InvalidToastConfigurationException::class, 'message');
 });
 
 it('keeps builder state isolated between toasts', function () {
@@ -57,5 +59,5 @@ it('exposes a shortcut method for each variant', function (string $method, strin
 ]);
 
 it('rejects an unknown variant', function () {
-    expect(fn () => $this->kit->make('x')->variant('danger'))->toThrow(InvalidArgumentException::class);
+    expect(fn () => $this->kit->make('x')->variant('danger'))->toThrow(InvalidToastConfigurationException::class);
 });

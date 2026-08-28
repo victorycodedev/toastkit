@@ -104,8 +104,11 @@ final class ToastKitManager: ObservableObject {
 
     private func animation(for toast: ToastKitConfiguration) -> Animation {
         switch toast.animation {
-        case .fade, .slide, .scale: return .easeInOut(duration: 0.2)
+        case .fade, .slide, .scale, .reveal: return .easeInOut(duration: 0.2)
+        case .snap: return .spring(response: 0.22, dampingFraction: 0.62)
         case .spring: return .spring(response: 0.35, dampingFraction: 0.78)
+        case .pop: return .spring(response: 0.28, dampingFraction: 0.58)
+        case .bounce: return .spring(response: 0.48, dampingFraction: 0.55)
         }
     }
 }

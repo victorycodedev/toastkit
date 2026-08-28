@@ -8,7 +8,7 @@ ToastKit renders toasts as native overlays — Jetpack Compose on Android, Swift
 
 - **Five variants** — `success`, `error`, `warning`, `info`, and `neutral`.
 - **Rich content** — title, message, and icons with per-platform overrides.
-- **Full customization** — position, duration, animation, swipe-to-dismiss, close control, colors, corner radius, padding, and shadow.
+- **Full customization** — position, animation direction, progress, loading, swipe-to-dismiss, close control, colors, corner radius, padding, and shadow.
 - **Action buttons** — a native action button with its own ID and pressed event.
 - **Queue strategy** — FIFO, one toast at a time.
 - **Stack strategy** — up to `maxVisible` toasts on screen with FIFO overflow.
@@ -100,7 +100,7 @@ Toast::make('Download complete')
     ->show();
 ```
 
-Supported options include `title()`, `icon()`, `position()`, `duration()`, `persistent()`, `animation()`, `swipeToDismiss()`, `dismissible()`, `action()`, and the styling methods `background()`, `foreground()`, `iconColor()`, `actionColor()`, `cornerRadius()`, `padding()`, and `shadow()`. See the [API Reference](#api-reference) for the full list.
+Supported options include `title()`, `icon()`, `position()`, `duration()`, `persistent()`, `animation()`, `direction()`, `progress()`, `loading()`, `swipeToDismiss()`, `dismissible()`, `action()`, and the styling methods `background()`, `foreground()`, `iconColor()`, `actionColor()`, `cornerRadius()`, `padding()`, and `shadow()`. See the [API Reference](#api-reference) for the full list.
 
 ## Icons
 
@@ -235,6 +235,209 @@ A message-only update is ideal for live progress:
 Toast::update($id)
     ->message('Uploading 50%...')
     ->show();
+```
+
+## Progress & Loading
+
+Use determinate progress for work with a known percentage. Values are clamped to `0`–`100`, and updates animate without replacing the toast:
+
+```php
+$id = Toast::info('Uploading...')->persistent()->progress(0)->show();
+
+Toast::update($id)->progress(42.5)->show();
+Toast::update($id)->progress(100)->message('Upload complete')->show();
+```
+
+Use `loading()` when progress is unknown, and `loading(false)` to stop it:
+
+```php
+$id = Toast::info('Connecting...')->persistent()->loading()->show();
+Toast::update($id)->loading(false)->message('Connected')->duration(1500)->show();
+```
+
+If a payload contains both `progress` and `loading: true`, determinate progress wins. This makes partial updates deterministic while preserving both values in the transport contract.
+
+## Animations & Direction
+
+ToastKit supports `fade`, `slide`, `scale`, `spring`, `snap`, `pop`, `reveal`, and `bounce`. Direction is independent and accepts `auto`, `left`, `right`, `top`, or `bottom`:
+
+```php
+Toast::success('Published')
+    ->animation('bounce')
+    ->direction('right')
+    ->show();
+```
+
+`auto` is the default and derives the motion from the toast position. Reduced-motion platform settings use a short fade instead of spatial or spring motion.
+
+## Presets
+
+Define reusable presets during application boot, such as in a service provider:
+
+```php
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+use Victorycodedev\ToastKit\PendingToast;
+use Victorycodedev\ToastKit\Facades\Toast;
+
+final class AppServiceProvider extends ServiceProvider
+{
+    public function boot(): void
+    {
+        Toast::definePreset('syncing', fn (PendingToast $toast) => $toast
+            ->message('Syncing...')
+            ->info()
+            ->persistent()
+            ->loading());
+    }
+}
+```
+
+Each call creates a fresh builder, and options chained afterward override the preset:
+
+```php
+Toast::preset('syncing')->message('Syncing contacts...')->show();
+```
+
+Defining the same name again replaces the previous definition. Missing presets throw `PresetNotFoundException`. All intentional public configuration failures extend `ToastKitException`. Presets are PHP-only because they are registered in the Laravel application lifecycle.
+
+Small applications can keep these definitions directly in `AppServiceProvider::boot()`. For larger applications, a convenient optional organization is an `App\Toasts\ToastPresets` class with a static `register()` method, called from `AppServiceProvider::boot()`. ToastKit does not generate or require this class; it simply keeps a longer preset catalog out of the provider. Precedence is: ToastKit defaults → preset → per-toast configuration → sparse update configuration.
+
+```php
+namespace App\Toasts;
+
+use Victorycodedev\ToastKit\Facades\Toast;
+
+final class ToastPresets
+{
+    public static function register(): void
+    {
+        Toast::definePreset('payment-success', fn ($toast) => $toast
+            ->success()->icon('check_circle')->animation('reveal')
+            ->position('top')->duration(3000));
+
+        Toast::definePreset('payment-failed', fn ($toast) => $toast
+            ->error()->icon('error')->animation('snap')->direction('left')
+            ->position('top')->duration(5000));
+
+        Toast::definePreset('uploading', fn ($toast) => $toast
+            ->info()->loading()->persistent());
+    }
+}
+```
+
+Then call `ToastPresets::register()` from your application's `AppServiceProvider::boot()`:
+
+```php
+namespace App\Providers;
+
+use App\Toasts\ToastPresets;
+use Illuminate\Support\ServiceProvider;
+
+final class AppServiceProvider extends ServiceProvider
+{
+    public function boot(): void
+    {
+        ToastPresets::register();
+    }
+}
+```
+
+You may instead keep all toast presets in a dedicated service provider, such as `ToastServiceProvider`:
+
+```php
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+use Victorycodedev\ToastKit\PendingToast;
+use Victorycodedev\ToastKit\Facades\Toast;
+
+final class ToastServiceProvider extends ServiceProvider
+{
+    public function boot(): void
+    {
+        Toast::definePreset('payment-success', fn (PendingToast $toast) => $toast
+            ->success()
+            ->icon('check_circle')
+            ->animation('reveal')
+            ->position('top')
+            ->duration(3000));
+
+        Toast::definePreset('payment-failed', fn (PendingToast $toast) => $toast
+            ->error()
+            ->icon('error')
+            ->animation('snap')
+            ->direction('left')
+            ->position('top')
+            ->duration(5000));
+
+        Toast::definePreset('uploading', fn (PendingToast $toast) => $toast
+            ->info()
+            ->loading()
+            ->persistent());
+    }
+}
+```
+
+Register that provider using your Laravel application's normal provider registration, for example in `bootstrap/providers.php`:
+
+```php
+return [
+    App\Providers\AppServiceProvider::class,
+    App\Providers\ToastServiceProvider::class,
+];
+```
+
+### Exceptions
+
+ToastKit exposes one package-owned exception hierarchy:
+
+```text
+RuntimeException
+└── ToastKitException
+    ├── InvalidToastConfigurationException
+    └── PresetNotFoundException
+```
+
+Catch `ToastKitException` when you want to handle every error intentionally raised by ToastKit:
+
+```php
+use Victorycodedev\ToastKit\Exceptions\ToastKitException;
+
+try {
+    Toast::preset('payment-success')->message('Paid')->show();
+} catch (ToastKitException $exception) {
+    report($exception);
+}
+```
+
+Use a specific subclass when the application can recover from one particular condition, such as a missing preset:
+
+```php
+use Victorycodedev\ToastKit\Exceptions\PresetNotFoundException;
+
+try {
+    Toast::preset('payment-success');
+} catch (PresetNotFoundException $exception) {
+    // The requested preset was not registered.
+}
+```
+
+#### Migrating exception catches
+
+ToastKit exceptions no longer extend PHP's `InvalidArgumentException`. Applications that previously caught that exception for ToastKit calls should use the package base exception instead:
+
+```php
+// Before
+catch (\InvalidArgumentException $exception) {
+    // ...
+}
+
+// Now
+catch (\Victorycodedev\ToastKit\Exceptions\ToastKitException $exception) {
+    // ...
+}
 ```
 
 ## Dismissing Toasts
@@ -462,7 +665,7 @@ Blade screen using native components:
 
 ## Real-world Example with NativePHP Fetch
 
-ToastKit pairs naturally with a Fetch package for upload/download progress. Fetch is **not** a ToastKit dependency — this is an optional integration example.
+ToastKit pairs naturally with the Fetch (Http) package for upload/download progress. Fetch is **not** a ToastKit dependency - this is an optional integration example.
 
 ```php
 $toastId = Toast::info('Downloading...')
@@ -608,6 +811,8 @@ Native::test(ProfileScreen::class)
 | `Toast::warning(string $message)` | A warning-variant toast. |
 | `Toast::info(string $message)` | An info-variant toast. |
 | `Toast::neutral(string $message)` | A neutral-variant toast. |
+| `Toast::definePreset(string $name, Closure $preset)` | Define or replace a reusable PHP preset. |
+| `Toast::preset(string $name)` | Create a fresh builder from a preset. |
 | `Toast::update(string $id)` | Start building an update for an existing toast. |
 | `Toast::dismiss(string $id)` | Dismiss a toast by ID. |
 | `Toast::dismissAll()` | Dismiss all active and queued toasts. |
@@ -629,7 +834,10 @@ Native::test(ProfileScreen::class)
 | `position(ToastPosition\|string $position)` | `top`, `center`, or `bottom`. |
 | `duration(int $milliseconds)` | Set the visible duration (makes the toast timed). |
 | `persistent(bool $persistent = true)` | Make the toast persistent (no timeout). |
-| `animation(ToastAnimation\|string $animation)` | `fade`, `slide`, `scale`, or `spring`. |
+| `animation(ToastAnimation\|string $animation)` | `fade`, `slide`, `scale`, `spring`, `snap`, `pop`, `reveal`, or `bounce`. |
+| `direction(ToastDirection\|string $direction)` | `auto`, `left`, `right`, `top`, or `bottom`. |
+| `progress(int\|float $progress)` | Set determinate progress, clamped to `0`–`100`. |
+| `loading(bool $loading = true)` | Enable or disable indeterminate progress. |
 | `swipeToDismiss(bool $enabled = true)` | Enable or disable swipe-to-dismiss. |
 | `dismissible(bool $enabled = true)` | Show a visible close control. |
 | `action(string $label, string $id)` | Add an action button with a label and ID. |
@@ -656,7 +864,8 @@ Native::test(ProfileScreen::class)
 | --- | --- |
 | `ToastVariant` | `success`, `error`, `warning`, `info`, `neutral` |
 | `ToastPosition` | `top`, `center`, `bottom` |
-| `ToastAnimation` | `fade`, `slide`, `scale`, `spring` |
+| `ToastAnimation` | `fade`, `slide`, `scale`, `spring`, `snap`, `pop`, `reveal`, `bounce` |
+| `ToastDirection` | `auto`, `left`, `right`, `top`, `bottom` |
 | `ToastStrategy` | `queue`, `stack` |
 | `ToastTextSize` | `xs`, `sm`, `base`, `lg`, `xl` |
 | `ToastTextWeight` | `normal`, `medium`, `semibold`, `bold` |
@@ -672,6 +881,8 @@ Native::test(ProfileScreen::class)
 | `duration` | `3000` ms |
 | `persistent` | `false` |
 | `animation` | `scale` |
+| `direction` | `auto` |
+| `loading` | `false` |
 | `swipe_to_dismiss` | `true` |
 | `dismissible` | `false` |
 | `strategy` | `queue` |

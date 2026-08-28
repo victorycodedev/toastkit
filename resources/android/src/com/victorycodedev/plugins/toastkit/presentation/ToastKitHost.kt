@@ -11,6 +11,8 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -66,6 +68,11 @@ private fun ToastKitCard(toast: ToastKitConfiguration) {
     val accessibility = LocalContext.current.getSystemService(Context.ACCESSIBILITY_SERVICE) as? AccessibilityManager
     val animationsDisabled = Settings.Global.getFloat(LocalContext.current.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
     val reduceMotion = animationsDisabled || (accessibility?.isEnabled == true && accessibility.isTouchExplorationEnabled)
+    val displayedProgress by animateFloatAsState(
+        targetValue = (toast.progress ?: 0f) / 100f,
+        animationSpec = if (reduceMotion) tween(100) else tween(220),
+        label = "toast-progress",
+    )
     val gesture = if (!toast.swipeToDismiss) Modifier else Modifier.pointerInput(toast.id) {
         detectDragGestures(
             onDragStart = { velocityTracker.resetTracking() },
@@ -89,30 +96,39 @@ private fun ToastKitCard(toast: ToastKitConfiguration) {
     }
     val enter = if (reduceMotion) fadeIn(tween(120)) else when (toast.animation) {
         ToastKitAnimation.FADE -> fadeIn(tween(180))
-        ToastKitAnimation.SLIDE -> slideInVertically(tween(220)) { if (toast.position == ToastKitPosition.BOTTOM) it else -it } + fadeIn()
+        ToastKitAnimation.SLIDE -> directionalEnter(toast, tween(220)) + fadeIn()
         ToastKitAnimation.SCALE -> scaleIn(tween(180), initialScale = .9f) + fadeIn()
         ToastKitAnimation.SPRING -> scaleIn(spring(), initialScale = .86f) + fadeIn()
+        ToastKitAnimation.SNAP -> directionalEnter(toast, spring(dampingRatio = .68f, stiffness = 950f)) + fadeIn(tween(90))
+        ToastKitAnimation.POP -> scaleIn(spring(dampingRatio = .55f, stiffness = 650f), initialScale = .72f) + fadeIn(tween(100))
+        ToastKitAnimation.REVEAL -> expandHorizontally(tween(240), expandFrom = revealAlignment(toast)) + fadeIn(tween(160))
+        ToastKitAnimation.BOUNCE -> directionalEnter(toast, spring(dampingRatio = .45f, stiffness = 360f)) + fadeIn(tween(120))
     }
     val exit = if (reduceMotion) fadeOut(tween(100)) else when (toast.animation) {
         ToastKitAnimation.FADE -> fadeOut(tween(160))
-        ToastKitAnimation.SLIDE -> slideOutVertically(tween(220)) { if (toast.position == ToastKitPosition.BOTTOM) it else -it } + fadeOut()
+        ToastKitAnimation.SLIDE -> directionalExit(toast, tween(220)) + fadeOut()
         ToastKitAnimation.SCALE -> scaleOut(tween(160), targetScale = .9f) + fadeOut()
         ToastKitAnimation.SPRING -> scaleOut(spring(), targetScale = .86f) + fadeOut(tween(220))
+        ToastKitAnimation.SNAP -> directionalExit(toast, tween(110)) + fadeOut(tween(90))
+        ToastKitAnimation.POP -> scaleOut(tween(150), targetScale = .72f) + fadeOut(tween(120))
+        ToastKitAnimation.REVEAL -> shrinkHorizontally(tween(210), shrinkTowards = revealAlignment(toast)) + fadeOut(tween(150))
+        ToastKitAnimation.BOUNCE -> directionalExit(toast, tween(220)) + fadeOut(tween(160))
     }
     val visibility = remember(toast.id) { MutableTransitionState(false) }
     val shouldBeVisible = toast.id !in ToastKitManager.exiting
     LaunchedEffect(shouldBeVisible) { visibility.targetState = shouldBeVisible }
     AnimatedVisibility(visibleState = visibility, enter = enter, exit = exit) {
-        Row(
+        Column(
             modifier = Modifier.padding(vertical = 4.dp).widthIn(max = 560.dp).fillMaxWidth()
                 .graphicsLayer { translationX = displayedX; translationY = displayedY; alpha = (1f - (abs(displayedX) + abs(displayedY)) / 700f).coerceIn(.35f, 1f) }
                 .then(if (toast.style.shadow) Modifier.shadow(8.dp, RoundedCornerShape(toast.style.cornerRadius.dp)) else Modifier)
                 .clip(RoundedCornerShape(toast.style.cornerRadius.dp)).background(toast.style.background)
                 .padding(toast.style.padding.dp).then(gesture),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            toast.icon?.let {
+          Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            if (toast.progress == null && toast.loading) {
+                CircularProgressIndicator(Modifier.size(22.dp), color = toast.style.iconColor, strokeWidth = 2.5.dp)
+            } else toast.icon?.let {
                 MaterialIcon(it.android ?: it.name ?: "circle", "Toast icon", size = 24.dp, tint = toast.style.iconColor)
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -120,7 +136,7 @@ private fun ToastKitCard(toast: ToastKitConfiguration) {
                     Text(
                         text = title,
                         color = toast.style.foreground,
-                        fontSize = toast.titleText?.size?.let(::toastTextSize) ?: 15.sp,
+                        fontSize = toast.titleText?.size?.let(::toastTextSize) ?: 16.sp,
                         fontWeight = toast.titleText?.weight?.let(::toastTextWeight) ?: FontWeight.SemiBold,
                         fontStyle = toast.titleText?.italic?.let { if (it) FontStyle.Italic else FontStyle.Normal },
                         fontFamily = toast.titleText?.font?.let(::toastFontFamily),
@@ -148,16 +164,56 @@ private fun ToastKitCard(toast: ToastKitConfiguration) {
                     MaterialIcon("close", "Dismiss", size = 20.dp, tint = toast.style.foreground)
                 }
             }
+          }
+          toast.progress?.let {
+              Spacer(Modifier.height(10.dp))
+              LinearProgressIndicator(
+                  progress = { displayedProgress },
+                  modifier = Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(2.dp)),
+                  color = toast.style.actionColor,
+                  trackColor = toast.style.foreground.copy(alpha = .22f),
+              )
+          }
         }
     }
 }
 
+private fun resolvedDirection(toast: ToastKitConfiguration): ToastKitDirection = when (toast.direction) {
+    ToastKitDirection.AUTO -> when (toast.position) {
+        ToastKitPosition.TOP -> ToastKitDirection.TOP
+        ToastKitPosition.BOTTOM -> ToastKitDirection.BOTTOM
+        ToastKitPosition.CENTER -> ToastKitDirection.TOP
+    }
+    else -> toast.direction
+}
+
+private fun directionalEnter(toast: ToastKitConfiguration, spec: androidx.compose.animation.core.FiniteAnimationSpec<androidx.compose.ui.unit.IntOffset>): EnterTransition =
+    when (resolvedDirection(toast)) {
+        ToastKitDirection.LEFT -> slideInHorizontally(spec) { -it }
+        ToastKitDirection.RIGHT -> slideInHorizontally(spec) { it }
+        ToastKitDirection.TOP -> slideInVertically(spec) { -it }
+        else -> slideInVertically(spec) { it }
+    }
+
+private fun directionalExit(toast: ToastKitConfiguration, spec: androidx.compose.animation.core.FiniteAnimationSpec<androidx.compose.ui.unit.IntOffset>): ExitTransition =
+    when (resolvedDirection(toast)) {
+        ToastKitDirection.LEFT -> slideOutHorizontally(spec) { -it }
+        ToastKitDirection.RIGHT -> slideOutHorizontally(spec) { it }
+        ToastKitDirection.TOP -> slideOutVertically(spec) { -it }
+        else -> slideOutVertically(spec) { it }
+    }
+
+private fun revealAlignment(toast: ToastKitConfiguration): Alignment.Horizontal = when (resolvedDirection(toast)) {
+    ToastKitDirection.RIGHT -> Alignment.End
+    else -> Alignment.Start
+}
+
 private fun toastTextSize(size: ToastKitTextSize) = when (size) {
-    ToastKitTextSize.XS -> 11.sp
-    ToastKitTextSize.SM -> 13.sp
-    ToastKitTextSize.BASE -> 14.sp
-    ToastKitTextSize.LG -> 16.sp
-    ToastKitTextSize.XL -> 18.sp
+    ToastKitTextSize.XS -> 12.sp
+    ToastKitTextSize.SM -> 14.sp
+    ToastKitTextSize.BASE -> 15.sp
+    ToastKitTextSize.LG -> 17.sp
+    ToastKitTextSize.XL -> 19.sp
 }
 
 private fun toastTextWeight(weight: ToastKitTextWeight) = when (weight) {

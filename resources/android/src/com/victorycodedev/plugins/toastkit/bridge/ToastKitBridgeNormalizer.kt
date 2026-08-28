@@ -33,6 +33,9 @@ internal object ToastKitBridgeNormalizer {
         if (changes.containsKey("icon")) next = next.copy(icon = optionalValue(changes["icon"])?.let(::icon))
         changes["position"]?.let { next = next.copy(position = position(it)) }
         changes["animation"]?.let { next = next.copy(animation = animation(it)) }
+        changes["direction"]?.let { next = next.copy(direction = direction(it)) }
+        if (changes.containsKey("progress")) next = next.copy(progress = optionalValue(changes["progress"])?.let(::progress))
+        changes["loading"]?.let { next = next.copy(loading = boolean(it, "loading")) }
         changes["swipe_to_dismiss"]?.let { next = next.copy(swipeToDismiss = boolean(it, "swipe_to_dismiss")) }
         changes["dismissible"]?.let { next = next.copy(dismissible = boolean(it, "dismissible")) }
         if (changes.containsKey("action")) next = next.copy(action = optionalValue(changes["action"])?.let(::action))
@@ -63,6 +66,9 @@ internal object ToastKitBridgeNormalizer {
             position = position(values["position"] ?: "bottom"),
             durationMs = if (persistent) null else positiveLong(values["duration"] ?: 3000, "duration"),
             animation = animation(values["animation"] ?: "scale"),
+            direction = direction(values["direction"] ?: "auto"),
+            progress = optionalValue(values["progress"])?.let(::progress),
+            loading = values["loading"]?.let { boolean(it, "loading") } ?: false,
             swipeToDismiss = values["swipe_to_dismiss"]?.let { boolean(it, "swipe_to_dismiss") } ?: true,
             dismissible = values["dismissible"]?.let { boolean(it, "dismissible") } ?: false,
             action = optionalValue(values["action"])?.let(::action),
@@ -160,7 +166,8 @@ internal object ToastKitBridgeNormalizer {
 
     private fun variant(value: Any): String = enumString(value, "variant", setOf("neutral", "success", "error", "warning", "info"))
     private fun position(value: Any) = ToastKitPosition.valueOf(enumString(value, "position", setOf("top", "center", "bottom")).uppercase())
-    private fun animation(value: Any) = ToastKitAnimation.valueOf(enumString(value, "animation", setOf("fade", "slide", "scale", "spring")).uppercase())
+    private fun animation(value: Any) = ToastKitAnimation.valueOf(enumString(value, "animation", setOf("fade", "slide", "scale", "spring", "snap", "pop", "reveal", "bounce")).uppercase())
+    private fun direction(value: Any) = ToastKitDirection.valueOf(enumString(value, "direction", setOf("auto", "left", "right", "top", "bottom")).uppercase())
     private fun strategy(value: Any) = ToastKitStrategy.valueOf(enumString(value, "strategy", setOf("queue", "stack")).uppercase())
     private fun textSize(value: Any) = ToastKitTextSize.valueOf(enumString(value, "text size", setOf("xs", "sm", "base", "lg", "xl")).uppercase())
     private fun textWeight(value: Any) = ToastKitTextWeight.valueOf(enumString(value, "text weight", setOf("normal", "medium", "semibold", "bold")).uppercase())
@@ -193,6 +200,11 @@ internal object ToastKitBridgeNormalizer {
         val result = (value as? Number)?.toFloat() ?: throw ToastKitInputException("$name must be numeric")
         requireInput(result >= 0, "$name must not be negative")
         return result
+    }
+    private fun progress(value: Any): Float {
+        val result = (value as? Number)?.toFloat() ?: throw ToastKitInputException("progress must be numeric")
+        requireInput(result.isFinite(), "progress must be finite")
+        return result.coerceIn(0f, 100f)
     }
     private fun stringMap(value: Any?): Map<String, Any>? = when (value) {
         is JSONObject -> value.keys().asSequence().associate { key -> key to value.get(key) }
