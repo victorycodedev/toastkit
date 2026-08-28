@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Native `snap`, `pop`, `reveal`, and `bounce` animations with independent `auto`, `left`, `right`, `top`, and `bottom` direction control.
+- Determinate `progress()` and indeterminate `loading()` APIs with smooth sparse updates on Android and iOS.
+- Laravel-container-backed reusable toast presets through `Toast::definePreset()` and `Toast::preset()`.
+- A catchable ToastKit exception hierarchy with configuration and missing-preset exceptions.
+- JavaScript parity for animations, direction, progress, and loading.
+
 - Initial public API: `Toast` facade, `PendingToast` and `PendingToastUpdate` builders.
 - Five variants (`neutral`, `success`, `error`, `warning`, `info`) with native defaults.
 - Content options: title, message, icons with iOS/Android overrides, and action buttons.

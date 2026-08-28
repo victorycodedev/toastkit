@@ -3,11 +3,14 @@
 namespace Victorycodedev\ToastKit;
 
 use Closure;
-use InvalidArgumentException;
+use Victorycodedev\ToastKit\Exceptions\InvalidToastConfigurationException;
 
 class ToastKit
 {
-    public function __construct(private readonly ?Closure $bridge = null) {}
+    public function __construct(
+        private readonly ?Closure $bridge = null,
+        private readonly ToastPresetRegistry $presets = new ToastPresetRegistry(),
+    ) {}
 
     public function make(?string $message = null): PendingToast
     {
@@ -32,6 +35,16 @@ class ToastKit
     public function neutral(string $message): PendingToast
     {
         return $this->make($message)->neutral();
+    }
+
+    public function definePreset(string $name, Closure $preset): void
+    {
+        $this->presets->define($name, $preset);
+    }
+
+    public function preset(string $name): PendingToast
+    {
+        return $this->presets->apply($name, $this->make());
     }
 
     public function update(string $id): PendingToastUpdate
@@ -75,6 +88,6 @@ class ToastKit
     /** @internal */
     public function assertIdentifier(string $id): void
     {
-        if (trim($id) === '') throw new InvalidArgumentException('Toast IDs must not be empty.');
+        if (trim($id) === '') throw new InvalidToastConfigurationException('Toast IDs must not be empty.');
     }
 }

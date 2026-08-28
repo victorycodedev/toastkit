@@ -2,8 +2,8 @@
 
 namespace Victorycodedev\ToastKit;
 
-use InvalidArgumentException;
 use Victorycodedev\ToastKit\Concerns\ConfiguresToast;
+use Victorycodedev\ToastKit\Exceptions\InvalidToastConfigurationException;
 
 class PendingToast
 {
@@ -27,7 +27,7 @@ class PendingToast
 
     public function show(): string
     {
-        if (! isset($this->options['message'])) throw new InvalidArgumentException('A toast message is required before show().');
+        if (! isset($this->options['message'])) throw new InvalidToastConfigurationException('A toast message is required before show().');
 
         $variant = $this->options['variant'] ?? 'neutral';
         $payload = array_replace_recursive(
@@ -43,7 +43,7 @@ class PendingToast
     /** @internal */
     public function payload(): array
     {
-        if (! isset($this->options['message'])) throw new InvalidArgumentException('A toast message is required before show().');
+        if (! isset($this->options['message'])) throw new InvalidToastConfigurationException('A toast message is required before show().');
         $variant = $this->options['variant'] ?? 'neutral';
         return array_replace_recursive($this->defaults(), $this->variantDefaults($variant), $this->options, [
             'id' => $this->id,
@@ -78,6 +78,8 @@ class PendingToast
             'duration' => 3000,
             'persistent' => false,
             'animation' => 'scale',
+            'direction' => 'auto',
+            'loading' => false,
             'swipe_to_dismiss' => true,
             'dismissible' => false,
             'style' => ['corner_radius' => 16, 'padding' => 16, 'shadow' => true],

@@ -17,7 +17,7 @@ it('rejects an invalid position', function () {
 });
 
 it('rejects an invalid animation', function () {
-    expect(fn () => $this->kit->make('x')->animation('bounce'))->toThrow(InvalidArgumentException::class);
+    expect(fn () => $this->kit->make('x')->animation('spin'))->toThrow(InvalidArgumentException::class);
 });
 
 it('rejects an invalid strategy', function () {

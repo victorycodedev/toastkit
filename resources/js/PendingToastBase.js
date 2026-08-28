@@ -67,6 +67,16 @@ export class PendingToastBase {
   animation(value) {
     return this.set("animation", oneOf(value, "animation"));
   }
+  direction(value) {
+    return this.set("direction", oneOf(value, "direction"));
+  }
+  progress(value) {
+    if (!Number.isFinite(value)) throw new TypeError("progress must be a finite number");
+    return this.set("progress", Math.max(0, Math.min(100, value)));
+  }
+  loading(enabled = true) {
+    return this.set("loading", Boolean(enabled));
+  }
   swipeToDismiss(enabled = true) {
     return this.set("swipe_to_dismiss", Boolean(enabled));
   }

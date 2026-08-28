@@ -35,6 +35,9 @@ enum ToastKitBridgeNormalizer {
         if let value = changes["icon"] { next.icon = try icon(value) }
         if let value = changes["position"] { next.position = try enumValue(value, "position") }
         if let value = changes["animation"] { next.animation = try enumValue(value, "animation") }
+        if let value = changes["direction"] { next.direction = try enumValue(value, "direction") }
+        if changes.keys.contains("progress") { next.progress = try changes["progress"].map(progress) }
+        if let value = changes["loading"] { next.loading = try boolean(value, "loading") }
         if let value = changes["swipe_to_dismiss"] { next.swipeToDismiss = try boolean(value, "swipe_to_dismiss") }
         if let value = changes["dismissible"] { next.dismissible = try boolean(value, "dismissible") }
         if changes.keys.contains("action") { next.action = try changes["action"].map(action) }
@@ -63,6 +66,9 @@ enum ToastKitBridgeNormalizer {
             position: try enumValue(values["position"] ?? "bottom", "position"),
             durationMilliseconds: persistent ? nil : try positiveInt(values["duration"] ?? 3000, "duration"),
             animation: try enumValue(values["animation"] ?? "scale", "animation"),
+            direction: try enumValue(values["direction"] ?? "auto", "direction"),
+            progress: try values["progress"].map(progress),
+            loading: try values["loading"].map { try boolean($0, "loading") } ?? false,
             swipeToDismiss: try values["swipe_to_dismiss"].map { try boolean($0, "swipe_to_dismiss") } ?? true,
             dismissible: try values["dismissible"].map { try boolean($0, "dismissible") } ?? false,
             action: try values["action"].map(action),
@@ -188,5 +194,11 @@ enum ToastKitBridgeNormalizer {
     }
     private static func nonNegative(_ value: Any, _ name: String) throws -> CGFloat {
         guard let result = (value as? NSNumber)?.doubleValue, result >= 0 else { throw ToastKitInputError.invalid("\(name) must not be negative") }; return CGFloat(result)
+    }
+    private static func progress(_ value: Any) throws -> Double {
+        guard let result = (value as? NSNumber)?.doubleValue, result.isFinite else {
+            throw ToastKitInputError.invalid("progress must be a finite number")
+        }
+        return min(100, max(0, result))
     }
 }

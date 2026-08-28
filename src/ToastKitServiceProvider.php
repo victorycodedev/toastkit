@@ -9,7 +9,8 @@ class ToastKitServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->singleton(ToastKit::class, fn() => new ToastKit());
+        $this->app->singleton(ToastPresetRegistry::class);
+        $this->app->singleton(ToastKit::class, fn($app) => new ToastKit(presets: $app->make(ToastPresetRegistry::class)));
         $this->app->alias(ToastKit::class, 'toastkit');
     }
 

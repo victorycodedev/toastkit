@@ -84,7 +84,11 @@ internal object ToastKitManager {
         waiting.remove(id)
         visible.removeAll { it.id == id }
         exiting.add(id)
-        val exitDuration = if (state.configuration.animation == ToastKitAnimation.SPRING) 450L else 260L
+        val exitDuration = when (state.configuration.animation) {
+            ToastKitAnimation.SPRING, ToastKitAnimation.BOUNCE -> 450L
+            ToastKitAnimation.REVEAL -> 280L
+            else -> 260L
+        }
         main.postDelayed({
             rendered.removeAll { it.id == id }
             exiting.remove(id)

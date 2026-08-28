@@ -81,6 +81,27 @@ test("position, duration, persistent and animation are set", () => {
   assert.equal(Toast.make("x").persistent().payload().duration, null);
 });
 
+test("new animations, direction, progress and loading are set", () => {
+  for (const animation of ["snap", "pop", "reveal", "bounce"])
+    assert.equal(Toast.make("x").animation(animation).payload().animation, animation);
+  assert.equal(Toast.make("x").direction("left").payload().direction, "left");
+  assert.equal(Toast.make("x").progress(-5).payload().progress, 0);
+  assert.equal(Toast.make("x").progress(42.5).payload().progress, 42.5);
+  assert.equal(Toast.make("x").progress(105).payload().progress, 100);
+  assert.equal(Toast.make("x").loading().payload().loading, true);
+  assert.equal(Toast.make("x").loading(false).payload().loading, false);
+});
+
+test("progress and loading updates remain sparse", async () => {
+  const calls = [];
+  fakeBridge(calls);
+  await Toast.update("upload").progress(40).show();
+  await Toast.update("upload").loading(false).show();
+  assert.deepEqual(calls[0].params.changes, { progress: 40 });
+  assert.deepEqual(calls[1].params.changes, { loading: false });
+  resetFetch();
+});
+
 test("swipe, dismissible and action are set", () => {
   const payload = Toast.make("x")
     .swipeToDismiss(false)
@@ -195,7 +216,9 @@ test("validation rejects bad input", () => {
   assert.throws(() => Toast.make(""), /message/);
   assert.throws(() => Toast.make("x").background("red"), /Colors/);
   assert.throws(() => Toast.make("x").position("left"), /position/);
-  assert.throws(() => Toast.make("x").animation("bounce"), /animation/);
+  assert.throws(() => Toast.make("x").animation("spin"), /animation/);
+  assert.throws(() => Toast.make("x").direction("diagonal"), /direction/);
+  assert.throws(() => Toast.make("x").progress(Infinity), /progress/);
   assert.throws(() => Toast.make("x").variant("danger"), /variant/);
   assert.throws(() => Toast.make("x").strategy("grid"), /strategy/);
   assert.throws(() => Toast.make("x").maxVisible(0), /maxVisible/);

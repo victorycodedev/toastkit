@@ -38,10 +38,53 @@ struct ToastKitHost: View {
         if reduceMotion { return .opacity }
         switch toast.animation {
         case .fade: return .opacity
-        case .slide: return .move(edge: toast.position == .top ? .top : .bottom).combined(with: .opacity)
+        case .slide: return .move(edge: edge(for: toast)).combined(with: .opacity)
         case .scale: return .scale(scale: 0.9).combined(with: .opacity)
         case .spring: return .scale(scale: 0.86).combined(with: .opacity)
+        case .snap: return .move(edge: edge(for: toast)).combined(with: .opacity)
+        case .pop: return .scale(scale: 0.72).combined(with: .opacity)
+        case .reveal:
+            return .modifier(
+                active: ToastKitRevealModifier(amount: 0.01, anchor: anchor(for: toast)),
+                identity: ToastKitRevealModifier(amount: 1, anchor: anchor(for: toast))
+            ).combined(with: .opacity)
+        case .bounce: return .move(edge: edge(for: toast)).combined(with: .opacity)
         }
+    }
+
+    private func edge(for toast: ToastKitConfiguration) -> Edge {
+        switch resolvedDirection(for: toast) {
+        case .left: return .leading
+        case .right: return .trailing
+        case .top: return .top
+        case .bottom, .auto: return .bottom
+        }
+    }
+
+    private func anchor(for toast: ToastKitConfiguration) -> UnitPoint {
+        switch resolvedDirection(for: toast) {
+        case .right: return .trailing
+        case .top: return .top
+        case .bottom: return .bottom
+        default: return .leading
+        }
+    }
+
+    private func resolvedDirection(for toast: ToastKitConfiguration) -> ToastKitDirection {
+        guard toast.direction == .auto else { return toast.direction }
+        switch toast.position {
+        case .top: return .top
+        case .bottom, .center: return .bottom
+        }
+    }
+}
+
+private struct ToastKitRevealModifier: ViewModifier {
+    let amount: CGFloat
+    let anchor: UnitPoint
+
+    func body(content: Content) -> some View {
+        content.scaleEffect(x: amount, y: 1, anchor: anchor).clipped()
     }
 }
 
@@ -52,7 +95,9 @@ private struct ToastKitView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            if let icon = toast.icon {
+            if toast.progress == nil && toast.loading {
+                ProgressView().tint(toast.style.iconColor).controlSize(.small)
+            } else if let icon = toast.icon {
                 Image(systemName: icon.ios ?? getIconForName(icon.name ?? "circle"))
                     .font(.system(size: 21, weight: .semibold)).foregroundStyle(toast.style.iconColor)
                     .accessibilityHidden(true)
@@ -95,6 +140,15 @@ private struct ToastKitView: View {
             }
         }
         .toastKitConditional(toast.swipeToDismiss) { $0.gesture(dragGesture) }
+        .overlay(alignment: .bottom) {
+            if let progress = toast.progress {
+                ProgressView(value: progress, total: 100)
+                    .tint(toast.style.actionColor)
+                    .padding(.horizontal, toast.style.padding)
+                    .padding(.bottom, 4)
+                    .animation(reduceMotion ? .linear(duration: 0.1) : .easeInOut(duration: 0.2), value: progress)
+            }
+        }
         .animation(reduceMotion ? .linear(duration: 0.1) : .spring(response: 0.3, dampingFraction: 0.78), value: drag)
     }
 
