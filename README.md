@@ -665,7 +665,7 @@ Blade screen using native components:
 
 ## Real-world Example with NativePHP Fetch
 
-ToastKit pairs naturally with a Fetch package for upload/download progress. Fetch is **not** a ToastKit dependency — this is an optional integration example.
+ToastKit pairs naturally with the Fetch (Http) package for upload/download progress. Fetch is **not** a ToastKit dependency - this is an optional integration example.
 
 ```php
 $toastId = Toast::info('Downloading...')
