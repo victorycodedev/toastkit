@@ -275,14 +275,23 @@ Toast::success('Published')
 Define reusable presets during application boot, such as in a service provider:
 
 ```php
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
 use Victorycodedev\ToastKit\PendingToast;
 use Victorycodedev\ToastKit\Facades\Toast;
 
-Toast::definePreset('syncing', fn (PendingToast $toast) => $toast
-    ->message('Syncing...')
-    ->info()
-    ->persistent()
-    ->loading());
+final class AppServiceProvider extends ServiceProvider
+{
+    public function boot(): void
+    {
+        Toast::definePreset('syncing', fn (PendingToast $toast) => $toast
+            ->message('Syncing...')
+            ->info()
+            ->persistent()
+            ->loading());
+    }
+}
 ```
 
 Each call creates a fresh builder, and options chained afterward override the preset:
@@ -318,7 +327,67 @@ final class ToastPresets
 }
 ```
 
-Then call `ToastPresets::register()` from your application's `AppServiceProvider::boot()`.
+Then call `ToastPresets::register()` from your application's `AppServiceProvider::boot()`:
+
+```php
+namespace App\Providers;
+
+use App\Toasts\ToastPresets;
+use Illuminate\Support\ServiceProvider;
+
+final class AppServiceProvider extends ServiceProvider
+{
+    public function boot(): void
+    {
+        ToastPresets::register();
+    }
+}
+```
+
+You may instead keep all toast presets in a dedicated service provider, such as `ToastServiceProvider`:
+
+```php
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+use Victorycodedev\ToastKit\PendingToast;
+use Victorycodedev\ToastKit\Facades\Toast;
+
+final class ToastServiceProvider extends ServiceProvider
+{
+    public function boot(): void
+    {
+        Toast::definePreset('payment-success', fn (PendingToast $toast) => $toast
+            ->success()
+            ->icon('check_circle')
+            ->animation('reveal')
+            ->position('top')
+            ->duration(3000));
+
+        Toast::definePreset('payment-failed', fn (PendingToast $toast) => $toast
+            ->error()
+            ->icon('error')
+            ->animation('snap')
+            ->direction('left')
+            ->position('top')
+            ->duration(5000));
+
+        Toast::definePreset('uploading', fn (PendingToast $toast) => $toast
+            ->info()
+            ->loading()
+            ->persistent());
+    }
+}
+```
+
+Register that provider using your Laravel application's normal provider registration, for example in `bootstrap/providers.php`:
+
+```php
+return [
+    App\Providers\AppServiceProvider::class,
+    App\Providers\ToastServiceProvider::class,
+];
+```
 
 ## Dismissing Toasts
 
