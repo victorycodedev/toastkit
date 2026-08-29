@@ -2,7 +2,7 @@
 
 Rich, customizable native toast notifications for [NativePHP Mobile](https://nativephp.com/docs/mobile).
 
-ToastKit renders toasts as native overlays — Jetpack Compose on Android, SwiftUI on iOS — so they look and feel like part of the operating system. No Blade toast component is required.
+ToastKit renders toasts as native overlays — Jetpack Compose on Android, SwiftUI on iOS — so they look and feel like part of the operating system. No Blade component is required.
 
 ## Table of Contents
 
@@ -106,7 +106,7 @@ Toast::make('Profile updated')
     ->show();
 ```
 
-ToastKit is controlled from PHP and renders as a native overlay — you never add a Blade toast component.
+ToastKit is controlled from PHP and renders as a native overlay — you never add a Blade component.
 
 ## Basic Toasts
 
@@ -743,14 +743,6 @@ class ToastDemoScreen extends NativeComponent
     {
         if ($this->toastId) {
             Toast::dismiss($this->toastId);
-        }
-    }
-
-    #[On(ToastActionPressed::class)]
-    public function handleToastAction(string $toastId, string $actionId): void
-    {
-        if ($actionId === 'retry') {
-            $this->startUpload();
         }
     }
 }
