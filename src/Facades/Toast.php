@@ -16,10 +16,15 @@ use Victorycodedev\ToastKit\PendingToastUpdate;
  * @method static void definePreset(string $name, \Closure $preset)
  * @method static PendingToast preset(string $name)
  * @method static PendingToastUpdate update(string $id)
+ * @method static PendingToastUpdate updateUnique(string $key)
  * @method static void dismiss(string $id)
+ * @method static void dismissUnique(string $key)
  * @method static void dismissAll()
  */
 class Toast extends Facade
 {
-    protected static function getFacadeAccessor(): string { return 'toastkit'; }
+    protected static function getFacadeAccessor(): string
+    {
+        return 'toastkit';
+    }
 }

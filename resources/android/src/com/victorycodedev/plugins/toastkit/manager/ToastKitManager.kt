@@ -7,6 +7,8 @@ import com.victorycodedev.plugins.toastkit.bridge.ToastKitBridgeNormalizer
 import com.victorycodedev.plugins.toastkit.bridge.ToastKitEventDispatcher
 import com.victorycodedev.plugins.toastkit.model.*
 
+internal data class ToastKitShowResult(val id: String, val accepted: Boolean)
+
 internal object ToastKitManager {
     val visible = mutableStateListOf<ToastKitConfiguration>()
     val rendered = mutableStateListOf<ToastKitConfiguration>()
@@ -15,11 +17,25 @@ internal object ToastKitManager {
     private val waiting = ArrayDeque<String>()
     private val timers = mutableMapOf<String, Runnable>()
     private val main = Handler(Looper.getMainLooper())
+    private val identityLock = Any()
+    private val activeIds = mutableSetOf<String>()
+    private val uniqueToId = mutableMapOf<String, String>()
 
-    fun show(configuration: ToastKitConfiguration) = onMain {
-        if (states.containsKey(configuration.id)) return@onMain
-        states[configuration.id] = ToastKitState(configuration)
-        if (canAdmit(configuration)) admit(configuration.id) else waiting.addLast(configuration.id)
+    fun show(configuration: ToastKitConfiguration): ToastKitShowResult {
+        val result = synchronized(identityLock) {
+            configuration.uniqueKey?.let { key ->
+                uniqueToId[key]?.let { return@synchronized ToastKitShowResult(it, false) }
+            }
+            if (!activeIds.add(configuration.id)) return@synchronized ToastKitShowResult(configuration.id, false)
+            configuration.uniqueKey?.let { uniqueToId[it] = configuration.id }
+            ToastKitShowResult(configuration.id, true)
+        }
+        if (!result.accepted) return result
+        onMain {
+            states[configuration.id] = ToastKitState(configuration)
+            if (canAdmit(configuration)) admit(configuration.id) else waiting.addLast(configuration.id)
+        }
+        return result
     }
 
     fun update(id: String, changes: Map<String, Any>) = onMain {
@@ -33,7 +49,19 @@ internal object ToastKitManager {
         }
     }
 
+    fun updateUnique(key: String, changes: Map<String, Any>): String {
+        val id = resolveUnique(key)
+        update(id, changes)
+        return id
+    }
+
     fun dismiss(id: String, reason: String = "programmatic") = onMain { terminate(id, reason) }
+
+    fun dismissUnique(key: String): String {
+        val id = resolveUnique(key)
+        dismiss(id)
+        return id
+    }
 
     fun dismissAll() = onMain {
         states.keys.toList().forEach { terminate(it, "programmatic", promote = false) }
@@ -84,7 +112,7 @@ internal object ToastKitManager {
         waiting.remove(id)
         visible.removeAll { it.id == id }
         exiting.add(id)
-        val exitDuration = when (state.configuration.animation) {
+        val exitDuration = if (!state.visible) 0L else if (state.configuration.nativeAndroid) 160L else when (state.configuration.animation) {
             ToastKitAnimation.SPRING, ToastKitAnimation.BOUNCE -> 450L
             ToastKitAnimation.REVEAL -> 280L
             else -> 260L
@@ -92,10 +120,22 @@ internal object ToastKitManager {
         main.postDelayed({
             rendered.removeAll { it.id == id }
             exiting.remove(id)
+            releaseIdentity(state.configuration)
             if (promote) promote()
         }, exitDuration)
         states.remove(id)
         ToastKitEventDispatcher.dismissed(id, reason)
+    }
+
+    private fun resolveUnique(key: String): String = synchronized(identityLock) {
+        uniqueToId[key] ?: throw IllegalArgumentException("Unique toast [$key] is not active.")
+    }
+
+    private fun releaseIdentity(configuration: ToastKitConfiguration) = synchronized(identityLock) {
+        activeIds.remove(configuration.id)
+        configuration.uniqueKey?.let { key ->
+            if (uniqueToId[key] == configuration.id) uniqueToId.remove(key)
+        }
     }
 
     private fun promote() {

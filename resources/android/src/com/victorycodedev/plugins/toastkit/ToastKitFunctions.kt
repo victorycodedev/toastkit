@@ -14,8 +14,17 @@ object ToastKitFunctions {
             ToastKitEventDispatcher.bind(activity)
             ToastKitHostInstaller.ensureAttached(activity)
             val toast = ToastKitBridgeNormalizer.show(parameters)
-            ToastKitManager.show(toast)
-            mapOf("id" to toast.id, "accepted" to true)
+            val result = ToastKitManager.show(toast)
+            mapOf("id" to result.id, "accepted" to result.accepted)
+        }
+    }
+
+    class UpdateUnique(private val activity: FragmentActivity) : BridgeFunction {
+        override fun execute(parameters: Map<String, Any>): Map<String, Any> = respond {
+            ToastKitEventDispatcher.bind(activity)
+            val (key, changes) = ToastKitBridgeNormalizer.updateUnique(parameters)
+            val id = ToastKitManager.updateUnique(key, changes)
+            mapOf("id" to id, "unique_key" to key, "accepted" to true)
         }
     }
 
@@ -25,6 +34,15 @@ object ToastKitFunctions {
             val (id, changes) = ToastKitBridgeNormalizer.update(parameters)
             ToastKitManager.update(id, changes)
             mapOf("id" to id, "accepted" to true)
+        }
+    }
+
+    class DismissUnique(private val activity: FragmentActivity) : BridgeFunction {
+        override fun execute(parameters: Map<String, Any>): Map<String, Any> = respond {
+            ToastKitEventDispatcher.bind(activity)
+            val key = ToastKitBridgeNormalizer.uniqueKey(parameters)
+            val id = ToastKitManager.dismissUnique(key)
+            mapOf("id" to id, "unique_key" to key, "accepted" to true)
         }
     }
 

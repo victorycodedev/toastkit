@@ -48,6 +48,10 @@ export class PendingToast extends PendingToastBase {
     this.toastId = nonEmpty(value, "toast ID");
     return this;
   }
+  unique(key) {
+    this.values.unique_key = nonEmpty(key, "unique key");
+    return this;
+  }
   payload() {
     if (!this.values.message)
       throw new TypeError("A toast message is required before show()");
@@ -58,6 +62,7 @@ export class PendingToast extends PendingToastBase {
       title: null,
       variant: "neutral",
       position: "bottom",
+      native: { ios: false, android: false },
       duration: 3000,
       persistent: false,
       animation: "scale",
@@ -83,7 +88,7 @@ export class PendingToast extends PendingToastBase {
     };
   }
   async show() {
-    await bridgeCall("ToastKit.Show", this.payload());
-    return this.toastId;
+    const result = await bridgeCall("ToastKit.Show", this.payload());
+    return result?.id ?? this.toastId;
   }
 }

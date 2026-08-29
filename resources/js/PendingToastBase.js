@@ -55,6 +55,9 @@ export class PendingToastBase {
   position(value) {
     return this.set("position", oneOf(value, "position"));
   }
+  native({ ios = true, android = true } = {}) {
+    return this.set("native", { ios: Boolean(ios), android: Boolean(android) });
+  }
   duration(value) {
     this.set("persistent", false);
     return this.set("duration", positiveInteger(value, "duration"));

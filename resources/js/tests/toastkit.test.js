@@ -7,11 +7,15 @@ import {
   PendingToastUpdate,
   Show,
   Update,
+  UpdateUnique,
   Dismiss,
+  DismissUnique,
   DismissAll,
   show,
   update,
+  updateUnique,
   dismiss,
+  dismissUnique,
   dismissAll,
 } from "../index.js";
 
@@ -79,6 +83,27 @@ test("position, duration, persistent and animation are set", () => {
   assert.equal(payload.animation, "slide");
   assert.equal(Toast.make("x").persistent().payload().persistent, true);
   assert.equal(Toast.make("x").persistent().payload().duration, null);
+});
+
+test("native appearance is custom by default and selectable per platform", () => {
+  assert.deepEqual(Toast.success("Default").payload().native, { ios: false, android: false });
+  assert.deepEqual(Toast.success("Both").native().payload().native, { ios: true, android: true });
+  assert.deepEqual(Toast.success("iOS").native({ ios: true, android: false }).payload().native, { ios: true, android: false });
+  assert.deepEqual(Toast.success("Android").native({ ios: false, android: true }).payload().native, { ios: false, android: true });
+  assert.deepEqual(Toast.success("Neither").native({ ios: false, android: false }).payload().native, { ios: false, android: false });
+});
+
+test("native appearance preserves custom styles and is chain-order independent", () => {
+  const before = Toast.make("Before").background("#000000").native({ ios: true, android: false }).payload();
+  const after = Toast.make("After").native({ ios: true, android: false }).background("#000000").payload();
+  assert.deepEqual(before.native, after.native);
+  assert.deepEqual(before.style, after.style);
+  assert.equal(before.style.background, "#000000");
+});
+
+test("native appearance can be changed through a sparse update", () => {
+  const payload = Toast.update("toast").native({ ios: false, android: true }).payload();
+  assert.deepEqual(payload.changes, { native: { ios: false, android: true } });
 });
 
 test("new animations, direction, progress and loading are set", () => {
@@ -151,6 +176,21 @@ test("show() sends the full payload to the bridge", async () => {
   resetFetch();
 });
 
+test("unique() sends explicit identity and returns the native resolved UUID", async () => {
+  const calls = [];
+  globalThis.fetch = async (_url, options) => {
+    calls.push(JSON.parse(options.body));
+    return {
+      ok: true,
+      json: async () => ({ status: "success", data: { id: "existing-id", accepted: false } }),
+    };
+  };
+  const id = await Toast.error("Offline").unique("network-status").show();
+  assert.equal(id, "existing-id");
+  assert.equal(calls[0].params.unique_key, "network-status");
+  resetFetch();
+});
+
 test("update is sparse and retains the ID", async () => {
   const calls = [];
   fakeBridge(calls);
@@ -175,6 +215,24 @@ test("dismiss and dismissAll call the native bridge", async () => {
   resetFetch();
 });
 
+test("semantic update and dismiss use the unique bridge contracts", async () => {
+  const calls = [];
+  fakeBridge(calls);
+  await Toast.updateUnique("network-status").message("Online").show();
+  await Toast.dismissUnique("network-status");
+  assert.deepEqual(calls, [
+    {
+      method: "ToastKit.UpdateUnique",
+      params: { unique_key: "network-status", changes: { message: "Online" } },
+    },
+    {
+      method: "ToastKit.DismissUnique",
+      params: { unique_key: "network-status" },
+    },
+  ]);
+  resetFetch();
+});
+
 test("builders isolate their state", () => {
   const a = Toast.success("A").position("top");
   const b = Toast.error("B");
@@ -188,27 +246,38 @@ test("every bridge function has a named export", async () => {
   fakeBridge(calls);
   await Show({ id: "one", message: "Hi" });
   await Update("two", { message: "Bye" });
+  await UpdateUnique("status", { message: "Ready" });
   await Dismiss("three");
+  await DismissUnique("status");
   await DismissAll();
   assert.deepEqual(
     calls.map((x) => x.method),
     [
       "ToastKit.Show",
       "ToastKit.Update",
+      "ToastKit.UpdateUnique",
       "ToastKit.Dismiss",
+      "ToastKit.DismissUnique",
       "ToastKit.DismissAll",
     ],
   );
   assert.deepEqual(calls[0].params, { id: "one", message: "Hi" });
   assert.deepEqual(calls[1].params, { id: "two", changes: { message: "Bye" } });
-  assert.deepEqual(calls[2].params, { id: "three" });
+  assert.deepEqual(calls[2].params, {
+    unique_key: "status",
+    changes: { message: "Ready" },
+  });
+  assert.deepEqual(calls[3].params, { id: "three" });
+  assert.deepEqual(calls[4].params, { unique_key: "status" });
   resetFetch();
 });
 
 test("lowercase aliases match the PascalCase exports", () => {
   assert.equal(show, Show);
   assert.equal(update, Update);
+  assert.equal(updateUnique, UpdateUnique);
   assert.equal(dismiss, Dismiss);
+  assert.equal(dismissUnique, DismissUnique);
   assert.equal(dismissAll, DismissAll);
 });
 
@@ -228,7 +297,9 @@ test("validation rejects bad input", () => {
   assert.throws(() => Toast.make("x").action("", "retry"), /action label/);
   assert.throws(() => Toast.make("x").icon(), /icon name or platform override/);
   assert.throws(() => Toast.make("x").id(""), /toast ID/);
+  assert.throws(() => Toast.make("x").unique(""), /unique key/);
   assert.throws(() => Toast.update(""), /toast ID/);
+  assert.throws(() => Toast.updateUnique(""), /unique key/);
   assert.throws(() => new PendingToastUpdate("one").payload(), /change/);
 });
 

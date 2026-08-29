@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Platform-selective `native()` rendering with iOS Liquid Glass/native material fallback, Android Material 3 appearance, sparse update support, presets, and JavaScript parity.
+- Unique toasts through `unique()`, `updateUnique()`, and `dismissUnique()`, with native lifecycle-aware deduplication across visible, queued, stacked, and persistent states on Android and iOS.
+- JavaScript parity for unique toast creation, updates, dismissal, and bridge-resolved UUIDs.
 - Native `snap`, `pop`, `reveal`, and `bounce` animations with independent `auto`, `left`, `right`, `top`, and `bottom` direction control.
 - Determinate `progress()` and indeterminate `loading()` APIs with smooth sparse updates on Android and iOS.
 - Laravel-container-backed reusable toast presets through `Toast::definePreset()` and `Toast::preset()`.

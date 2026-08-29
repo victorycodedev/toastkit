@@ -9,6 +9,8 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
 import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
@@ -18,6 +20,7 @@ import androidx.fragment.app.FragmentActivity
 import java.util.WeakHashMap
 import android.os.Handler
 import android.os.Looper
+import com.nativephp.mobile.ui.NativeUIThemeProvider
 
 internal object ToastKitHostInstaller : Application.ActivityLifecycleCallbacks {
     private val attached = WeakHashMap<Activity, List<ComposeView>>()
@@ -48,7 +51,13 @@ internal object ToastKitHostInstaller : Application.ActivityLifecycleCallbacks {
                 setViewTreeLifecycleOwner(activity)
                 setViewTreeViewModelStoreOwner(activity)
                 setViewTreeSavedStateRegistryOwner(activity)
-                setContent { ToastKitHost(position) }
+                setContent {
+                    val isDark = isSystemInDarkTheme()
+                    MaterialTheme(
+                        colorScheme = NativeUIThemeProvider.resolve(isDark),
+                        typography = NativeUIThemeProvider.resolveTypography(),
+                    ) { ToastKitHost(position) }
+                }
                 decor.addView(this, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
                     gravity = when (position) { ToastKitPosition.TOP -> Gravity.TOP; ToastKitPosition.CENTER -> Gravity.CENTER; ToastKitPosition.BOTTOM -> Gravity.BOTTOM }
                 })

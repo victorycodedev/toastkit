@@ -91,3 +91,19 @@ it('sends the dismissAll payload', function () {
 
     expect($this->calls[0])->toBe(['ToastKit.DismissAll', []]);
 });
+
+it('sends unique show, update, and dismiss contracts', function () {
+    $this->kit->error('Offline')->unique('network-status')->show();
+    $this->kit->updateUnique('network-status')->message('Online')->show();
+    $this->kit->dismissUnique('network-status');
+
+    expect($this->calls[0][1]['unique_key'])->toBe('network-status')
+        ->and($this->calls[1])->toBe([
+            'ToastKit.UpdateUnique',
+            ['unique_key' => 'network-status', 'changes' => ['message' => 'Online']],
+        ])
+        ->and($this->calls[2])->toBe([
+            'ToastKit.DismissUnique',
+            ['unique_key' => 'network-status'],
+        ]);
+});

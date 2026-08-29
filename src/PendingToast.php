@@ -25,6 +25,13 @@ class PendingToast
         return $this;
     }
 
+    public function unique(string $key): static
+    {
+        $this->toastKit->assertUniqueKey($key);
+        $this->options['unique_key'] = $key;
+        return $this;
+    }
+
     public function show(): string
     {
         if (! isset($this->options['message'])) throw new InvalidToastConfigurationException('A toast message is required before show().');
@@ -36,8 +43,7 @@ class PendingToast
             $this->options,
             ['id' => $this->id, 'contract_version' => 1]
         );
-        $this->toastKit->show($payload);
-        return $this->id;
+        return $this->toastKit->show($payload) ?? $this->id;
     }
 
     /** @internal */
@@ -75,6 +81,7 @@ class PendingToast
             'title' => null,
             'variant' => 'neutral',
             'position' => 'bottom',
+            'native' => ['ios' => false, 'android' => false],
             'duration' => 3000,
             'persistent' => false,
             'animation' => 'scale',
