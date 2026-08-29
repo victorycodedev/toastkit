@@ -192,26 +192,9 @@ private fun ToastKitCard(toast: ToastKitConfiguration) {
 
 @Composable
 private fun NativeToastKitCard(toast: ToastKitConfiguration, displayedProgress: Float, modifier: Modifier) {
-    Snackbar(
-        modifier = modifier,
-        action = toast.action?.let { action ->
-            {
-                TextButton(
-                    onClick = { ToastKitManager.action(toast.id, action.id) },
-                    colors = ButtonDefaults.textButtonColors(contentColor = SnackbarDefaults.actionColor),
-                ) { Text(action.label) }
-            }
-        },
-        dismissAction = if (toast.dismissible) {
-            {
-                IconButton(onClick = { ToastKitManager.dismiss(toast.id) }) {
-                    MaterialIcon("close", "Dismiss", size = 20.dp, tint = LocalContentColor.current)
-                }
-            }
-        } else null,
-    ) {
+    Snackbar(modifier = modifier) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (toast.progress == null && toast.loading) {
                     CircularProgressIndicator(Modifier.size(22.dp), color = LocalContentColor.current, strokeWidth = 2.5.dp)
                 } else toast.icon?.let {
@@ -220,6 +203,17 @@ private fun NativeToastKitCard(toast: ToastKitConfiguration, displayedProgress: 
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     toast.title?.let { Text(it, style = androidx.compose.material3.MaterialTheme.typography.labelLarge) }
                     Text(toast.message, style = androidx.compose.material3.MaterialTheme.typography.bodyMedium)
+                }
+                toast.action?.let { action ->
+                    TextButton(
+                        onClick = { ToastKitManager.action(toast.id, action.id) },
+                        colors = ButtonDefaults.textButtonColors(contentColor = SnackbarDefaults.actionColor),
+                    ) { Text(action.label) }
+                }
+                if (toast.dismissible) {
+                    IconButton(onClick = { ToastKitManager.dismiss(toast.id) }) {
+                        MaterialIcon("close", "Dismiss", size = 20.dp, tint = LocalContentColor.current)
+                    }
                 }
             }
             toast.progress?.let {
