@@ -11,19 +11,29 @@ class PendingToastUpdate
 
     private array $changes = [];
 
-    public function __construct(private readonly ToastKit $toastKit, private readonly string $id) {}
+    public function __construct(
+        private readonly ToastKit $toastKit,
+        private readonly string $target,
+        private readonly bool $usesUniqueKey = false,
+    ) {}
 
     public function show(): string
     {
         if ($this->changes === []) throw new InvalidToastConfigurationException('At least one toast change is required before show().');
-        $this->toastKit->applyUpdate($this->id, $this->changes);
-        return $this->id;
+        if ($this->usesUniqueKey) {
+            return $this->toastKit->applyUniqueUpdate($this->target, $this->changes) ?? $this->target;
+        }
+        $this->toastKit->applyUpdate($this->target, $this->changes);
+        return $this->target;
     }
 
     /** @internal */
     public function payload(): array
     {
-        return ['id' => $this->id, 'changes' => $this->changes];
+        return [
+            $this->usesUniqueKey ? 'unique_key' : 'id' => $this->target,
+            'changes' => $this->changes,
+        ];
     }
 
     protected function put(string $key, mixed $value): static

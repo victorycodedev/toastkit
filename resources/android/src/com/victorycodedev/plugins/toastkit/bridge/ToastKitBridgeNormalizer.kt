@@ -20,7 +20,15 @@ internal object ToastKitBridgeNormalizer {
         return id to changes
     }
 
+    fun updateUnique(parameters: Map<String, Any>): Pair<String, Map<String, Any>> {
+        val key = requiredString(parameters, "unique_key")
+        val changes = stringMap(parameters["changes"]) ?: throw ToastKitInputException("changes must be an object")
+        requireInput(changes.isNotEmpty(), "changes must not be empty")
+        return key to changes
+    }
+
     fun id(parameters: Map<String, Any>): String = requiredString(parameters, "id")
+    fun uniqueKey(parameters: Map<String, Any>): String = requiredString(parameters, "unique_key")
 
     fun applyChanges(current: ToastKitConfiguration, changes: Map<String, Any>): ToastKitConfiguration {
         var next = current
@@ -59,6 +67,7 @@ internal object ToastKitBridgeNormalizer {
         val persistent = values["persistent"]?.let { boolean(it, "persistent") } ?: false
         return ToastKitConfiguration(
             id = requiredString(values, "id"),
+            uniqueKey = nullableString(values["unique_key"], "unique_key"),
             message = requiredString(values, "message"),
             title = nullableString(values["title"], "title"),
             variant = variant(values["variant"] ?: "neutral"),

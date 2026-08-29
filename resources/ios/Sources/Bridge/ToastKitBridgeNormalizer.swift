@@ -20,7 +20,16 @@ enum ToastKitBridgeNormalizer {
         return (id, changes)
     }
 
+    static func updateUnique(_ values: [String: Any]) throws -> (String, [String: Any]) {
+        let key = try requiredString(values, "unique_key")
+        guard let changes = values["changes"] as? [String: Any], !changes.isEmpty else {
+            throw ToastKitInputError.invalid("changes must be a non-empty object")
+        }
+        return (key, changes)
+    }
+
     static func id(_ values: [String: Any]) throws -> String { try requiredString(values, "id") }
+    static func uniqueKey(_ values: [String: Any]) throws -> String { try requiredString(values, "unique_key") }
 
     static func applying(_ changes: [String: Any], to current: ToastKitConfiguration) throws -> ToastKitConfiguration {
         var next = current
@@ -59,6 +68,7 @@ enum ToastKitBridgeNormalizer {
         let persistent = try values["persistent"].map { try boolean($0, "persistent") } ?? false
         return ToastKitConfiguration(
             id: try requiredString(values, "id"),
+            uniqueKey: try nullableString(values["unique_key"], "unique_key"),
             message: try requiredString(values, "message"),
             title: try nullableString(values["title"], "title"),
             variant: variantName,

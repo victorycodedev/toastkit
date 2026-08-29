@@ -13,6 +13,7 @@ ToastKit renders toasts as native overlays — Jetpack Compose on Android, Swift
 - **Queue strategy** — FIFO, one toast at a time.
 - **Stack strategy** — up to `maxVisible` toasts on screen with FIFO overflow.
 - **Live updates** — change a visible or queued toast's message, variant, icon, style, or timer without creating a new toast.
+- **Unique toasts** — suppress duplicate work by a stable semantic key across visible, queued, stacked, and persistent toasts.
 - **Idempotent dismissal** — dismiss by ID or dismiss everything.
 - **Events** — `ToastShown`, `ToastDismissed`, and `ToastActionPressed`.
 - **JavaScript API** — a fluent `Toast` API for web-facing apps.
@@ -220,6 +221,49 @@ Toast::update($id)
     ->success()
     ->icon('check')
     ->duration(2000)
+    ->show();
+```
+
+## Unique Toasts
+
+Use `unique()` when one logical operation should have at most one active toast, even if the toast is currently visible, queued, stacked, or persistent:
+
+```php
+$id = Toast::info('Syncing contacts...')
+    ->unique('contacts-sync')
+    ->persistent()
+    ->show();
+```
+
+The key identifies the operation, not the presentation. ToastKit does not deduplicate ordinary toasts by message. Showing the same unique key again is ignored: it does not replace or update the original toast, reset its timer, move it in a queue, or emit another `ToastShown` event. `show()` returns the original toast's UUID, so callers can safely keep using the result:
+
+```php
+$originalId = Toast::info('Syncing...')->unique('contacts-sync')->show();
+$sameId = Toast::success('Duplicate request')->unique('contacts-sync')->show();
+
+// $sameId === $originalId; the original toast is unchanged.
+```
+
+Update or dismiss the active toast without retaining its UUID:
+
+```php
+Toast::updateUnique('contacts-sync')
+    ->success()
+    ->message('Contacts synced')
+    ->duration(2000)
+    ->show();
+
+Toast::dismissUnique('contacts-sync');
+```
+
+A key remains reserved until the toast has fully left the screen, including its exit animation. It is then reusable after every terminal path: timeout, swipe, action, close/programmatic dismissal, replacement, queue overflow, or `dismissAll()`. Updating a toast never changes its unique key. Calling `updateUnique()` or `dismissUnique()` for a key that is not active throws `ToastKitException`.
+
+Unique keys also work with presets. Put the operation-specific key on each fresh builder so the preset itself remains reusable:
+
+```php
+Toast::preset('syncing')
+    ->unique('contacts-sync')
+    ->message('Syncing contacts...')
     ->show();
 ```
 
@@ -557,14 +601,33 @@ await Toast.dismiss(id);
 await Toast.dismissAll();
 ```
 
+Unique toasts have the same semantics in JavaScript:
+
+```js
+const id = await Toast.info('Syncing contacts...')
+    .unique('contacts-sync')
+    .persistent()
+    .show();
+
+await Toast.updateUnique('contacts-sync')
+    .success()
+    .message('Contacts synced')
+    .duration(2000)
+    .show();
+
+await Toast.dismissUnique('contacts-sync');
+```
+
 Raw bridge functions are also exported:
 
 ```js
-import { Show, Update, Dismiss, DismissAll } from './resources/js';
+import { Show, Update, UpdateUnique, Dismiss, DismissUnique, DismissAll } from './resources/js';
 
 await Show({ id: 'one', message: 'Hello' });
 await Update('one', { message: 'Done' });
+await UpdateUnique('contacts-sync', { message: 'Done' });
 await Dismiss('one');
+await DismissUnique('contacts-sync');
 await DismissAll();
 ```
 
@@ -814,7 +877,9 @@ Native::test(ProfileScreen::class)
 | `Toast::definePreset(string $name, Closure $preset)` | Define or replace a reusable PHP preset. |
 | `Toast::preset(string $name)` | Create a fresh builder from a preset. |
 | `Toast::update(string $id)` | Start building an update for an existing toast. |
+| `Toast::updateUnique(string $key)` | Start building an update resolved by an active unique key. |
 | `Toast::dismiss(string $id)` | Dismiss a toast by ID. |
+| `Toast::dismissUnique(string $key)` | Dismiss the active toast resolved by a unique key. |
 | `Toast::dismissAll()` | Dismiss all active and queued toasts. |
 
 ### `PendingToast` builder
@@ -824,6 +889,7 @@ Native::test(ProfileScreen::class)
 | Method | Description |
 | --- | --- |
 | `id(string $id)` | Set a custom ID instead of the generated UUID. |
+| `unique(string $key)` | Reserve a semantic key and suppress duplicates until the toast fully exits. |
 | `message(string $message)` | Set the message text (required). |
 | `title(?string $title)` | Set or clear an optional title. |
 | `text(?string $font = null, $size = null, $weight = null, $align = null, ?bool $italic = null)` | Configure message typography. See [Typography](#typography). |
@@ -856,7 +922,7 @@ Native::test(ProfileScreen::class)
 
 ### `PendingToastUpdate` builder
 
-`Toast::update($id)` returns a `PendingToastUpdate`. It exposes the same configuration methods as `PendingToast` — except `id()`, since the ID is fixed — plus a `show()` method that applies the update. Only properties you explicitly set are sent; everything else is preserved.
+`Toast::update($id)` and `Toast::updateUnique($key)` return a `PendingToastUpdate`. It exposes the same configuration methods as `PendingToast` — except `id()` and `unique()`, since identity is fixed — plus a `show()` method that applies the update. Only properties you explicitly set are sent; everything else is preserved.
 
 ### Enums
 

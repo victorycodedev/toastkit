@@ -90,7 +90,24 @@ final class ToastKitManager: ObservableObject {
         withAnimation(animation(for: state.configuration)) { visible.removeAll { $0.id == id } }
         states.removeValue(forKey: id)
         ToastKitEventDispatcher.dismissed(id, reason: reason)
+        releaseIdentity(for: state)
         if shouldPromote { promote() }
+    }
+
+    private func releaseIdentity(for state: ToastKitState) {
+        guard state.visible else {
+            ToastKitUniqueRegistry.shared.release(state.configuration)
+            return
+        }
+        let milliseconds = switch state.configuration.animation {
+        case .spring, .bounce: 450
+        case .reveal: 280
+        default: 260
+        }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(milliseconds))
+            ToastKitUniqueRegistry.shared.release(state.configuration)
+        }
     }
 
     private func promote() {

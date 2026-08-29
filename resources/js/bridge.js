@@ -10,8 +10,9 @@ export async function bridgeCall(method, params = {}) {
     },
     body: JSON.stringify({ method, params }),
   });
-  if (!response.ok) throw new Error(`Native bridge HTTP ${response.status}`);
   const result = await response.json();
+  if (!response.ok)
+    throw new Error(result.message || `Native bridge HTTP ${response.status}`);
   if (result.status === "error")
     throw new Error(result.message || "Native call failed");
   return result.data?.data ?? result.data;

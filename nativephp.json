@@ -39,10 +39,22 @@
             "description": "Updates an existing toast by ID."
         },
         {
+            "name": "ToastKit.UpdateUnique",
+            "android": "com.victorycodedev.plugins.toastkit.ToastKitFunctions.UpdateUnique",
+            "ios": "ToastKitFunctions.UpdateUnique",
+            "description": "Updates an existing toast by its unique key."
+        },
+        {
             "name": "ToastKit.Dismiss",
             "android": "com.victorycodedev.plugins.toastkit.ToastKitFunctions.Dismiss",
             "ios": "ToastKitFunctions.Dismiss",
             "description": "Dismisses an existing toast by ID."
+        },
+        {
+            "name": "ToastKit.DismissUnique",
+            "android": "com.victorycodedev.plugins.toastkit.ToastKitFunctions.DismissUnique",
+            "ios": "ToastKitFunctions.DismissUnique",
+            "description": "Dismisses an existing toast by its unique key."
         },
         {
             "name": "ToastKit.DismissAll",

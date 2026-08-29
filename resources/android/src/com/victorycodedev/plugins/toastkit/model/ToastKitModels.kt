@@ -31,6 +31,7 @@ internal data class ToastKitStyle(
 
 internal data class ToastKitConfiguration(
     val id: String,
+    val uniqueKey: String?,
     val message: String,
     val title: String?,
     val variant: String,

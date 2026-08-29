@@ -38,6 +38,7 @@ struct ToastKitStyleConfiguration {
 
 struct ToastKitConfiguration: Identifiable {
     let id: String
+    let uniqueKey: String?
     var message: String
     var title: String?
     var variant: String

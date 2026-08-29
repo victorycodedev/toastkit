@@ -5,8 +5,22 @@ enum ToastKitFunctions {
         func execute(parameters: [String: Any]) throws -> [String: Any] {
             do {
                 let toast = try ToastKitBridgeNormalizer.show(parameters)
-                Task { @MainActor in ToastKitManager.shared.show(toast) }
-                return BridgeResponse.success(data: ["id": toast.id, "accepted": true])
+                let result = ToastKitUniqueRegistry.shared.reserve(toast)
+                if result.accepted {
+                    Task { @MainActor in ToastKitManager.shared.show(toast) }
+                }
+                return BridgeResponse.success(data: ["id": result.id, "accepted": result.accepted])
+            } catch { return BridgeResponse.error(code: "TOASTKIT_INVALID_ARGUMENT", message: ToastKitFunctions.message(for: error)) }
+        }
+    }
+
+    final class UpdateUnique: BridgeFunction {
+        func execute(parameters: [String: Any]) throws -> [String: Any] {
+            do {
+                let (key, changes) = try ToastKitBridgeNormalizer.updateUnique(parameters)
+                let id = try ToastKitUniqueRegistry.shared.resolve(key)
+                Task { @MainActor in try? ToastKitManager.shared.update(id, changes: changes) }
+                return BridgeResponse.success(data: ["id": id, "unique_key": key, "accepted": true])
             } catch { return BridgeResponse.error(code: "TOASTKIT_INVALID_ARGUMENT", message: ToastKitFunctions.message(for: error)) }
         }
     }
@@ -17,6 +31,17 @@ enum ToastKitFunctions {
                 let (id, changes) = try ToastKitBridgeNormalizer.update(parameters)
                 Task { @MainActor in try? ToastKitManager.shared.update(id, changes: changes) }
                 return BridgeResponse.success(data: ["id": id, "accepted": true])
+            } catch { return BridgeResponse.error(code: "TOASTKIT_INVALID_ARGUMENT", message: ToastKitFunctions.message(for: error)) }
+        }
+    }
+
+    final class DismissUnique: BridgeFunction {
+        func execute(parameters: [String: Any]) throws -> [String: Any] {
+            do {
+                let key = try ToastKitBridgeNormalizer.uniqueKey(parameters)
+                let id = try ToastKitUniqueRegistry.shared.resolve(key)
+                Task { @MainActor in ToastKitManager.shared.dismiss(id) }
+                return BridgeResponse.success(data: ["id": id, "unique_key": key, "accepted": true])
             } catch { return BridgeResponse.error(code: "TOASTKIT_INVALID_ARGUMENT", message: ToastKitFunctions.message(for: error)) }
         }
     }

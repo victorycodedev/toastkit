@@ -7,11 +7,15 @@ import {
   PendingToastUpdate,
   Show,
   Update,
+  UpdateUnique,
   Dismiss,
+  DismissUnique,
   DismissAll,
   show,
   update,
+  updateUnique,
   dismiss,
+  dismissUnique,
   dismissAll,
 } from "../index.js";
 
@@ -151,6 +155,21 @@ test("show() sends the full payload to the bridge", async () => {
   resetFetch();
 });
 
+test("unique() sends explicit identity and returns the native resolved UUID", async () => {
+  const calls = [];
+  globalThis.fetch = async (_url, options) => {
+    calls.push(JSON.parse(options.body));
+    return {
+      ok: true,
+      json: async () => ({ status: "success", data: { id: "existing-id", accepted: false } }),
+    };
+  };
+  const id = await Toast.error("Offline").unique("network-status").show();
+  assert.equal(id, "existing-id");
+  assert.equal(calls[0].params.unique_key, "network-status");
+  resetFetch();
+});
+
 test("update is sparse and retains the ID", async () => {
   const calls = [];
   fakeBridge(calls);
@@ -175,6 +194,24 @@ test("dismiss and dismissAll call the native bridge", async () => {
   resetFetch();
 });
 
+test("semantic update and dismiss use the unique bridge contracts", async () => {
+  const calls = [];
+  fakeBridge(calls);
+  await Toast.updateUnique("network-status").message("Online").show();
+  await Toast.dismissUnique("network-status");
+  assert.deepEqual(calls, [
+    {
+      method: "ToastKit.UpdateUnique",
+      params: { unique_key: "network-status", changes: { message: "Online" } },
+    },
+    {
+      method: "ToastKit.DismissUnique",
+      params: { unique_key: "network-status" },
+    },
+  ]);
+  resetFetch();
+});
+
 test("builders isolate their state", () => {
   const a = Toast.success("A").position("top");
   const b = Toast.error("B");
@@ -188,27 +225,38 @@ test("every bridge function has a named export", async () => {
   fakeBridge(calls);
   await Show({ id: "one", message: "Hi" });
   await Update("two", { message: "Bye" });
+  await UpdateUnique("status", { message: "Ready" });
   await Dismiss("three");
+  await DismissUnique("status");
   await DismissAll();
   assert.deepEqual(
     calls.map((x) => x.method),
     [
       "ToastKit.Show",
       "ToastKit.Update",
+      "ToastKit.UpdateUnique",
       "ToastKit.Dismiss",
+      "ToastKit.DismissUnique",
       "ToastKit.DismissAll",
     ],
   );
   assert.deepEqual(calls[0].params, { id: "one", message: "Hi" });
   assert.deepEqual(calls[1].params, { id: "two", changes: { message: "Bye" } });
-  assert.deepEqual(calls[2].params, { id: "three" });
+  assert.deepEqual(calls[2].params, {
+    unique_key: "status",
+    changes: { message: "Ready" },
+  });
+  assert.deepEqual(calls[3].params, { id: "three" });
+  assert.deepEqual(calls[4].params, { unique_key: "status" });
   resetFetch();
 });
 
 test("lowercase aliases match the PascalCase exports", () => {
   assert.equal(show, Show);
   assert.equal(update, Update);
+  assert.equal(updateUnique, UpdateUnique);
   assert.equal(dismiss, Dismiss);
+  assert.equal(dismissUnique, DismissUnique);
   assert.equal(dismissAll, DismissAll);
 });
 
@@ -228,7 +276,9 @@ test("validation rejects bad input", () => {
   assert.throws(() => Toast.make("x").action("", "retry"), /action label/);
   assert.throws(() => Toast.make("x").icon(), /icon name or platform override/);
   assert.throws(() => Toast.make("x").id(""), /toast ID/);
+  assert.throws(() => Toast.make("x").unique(""), /unique key/);
   assert.throws(() => Toast.update(""), /toast ID/);
+  assert.throws(() => Toast.updateUnique(""), /unique key/);
   assert.throws(() => new PendingToastUpdate("one").payload(), /change/);
 });
 
