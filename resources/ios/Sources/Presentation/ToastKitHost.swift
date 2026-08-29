@@ -35,7 +35,7 @@ struct ToastKitHost: View {
     }
 
     private func transition(for toast: ToastKitConfiguration) -> AnyTransition {
-        if reduceMotion { return .opacity }
+        if reduceMotion || toast.nativeIos { return .opacity }
         switch toast.animation {
         case .fade: return .opacity
         case .slide: return .move(edge: edge(for: toast)).combined(with: .opacity)
@@ -94,6 +94,25 @@ private struct ToastKitView: View {
     @State private var drag: CGSize = .zero
 
     var body: some View {
+        Group {
+            if toast.nativeIos { nativeContent } else { customContent }
+        }
+        .offset(drag)
+        .opacity(Double(max(CGFloat(0.35), CGFloat(1) - (abs(drag.width) + abs(drag.height)) / CGFloat(700))))
+        .contentShape(Rectangle())
+        .background {
+            GeometryReader { proxy in
+                Color.clear.preference(
+                    key: ToastKitFramePreferenceKey.self,
+                    value: [toast.id: proxy.frame(in: .global)]
+                )
+            }
+        }
+        .toastKitConditional(toast.swipeToDismiss) { $0.gesture(dragGesture) }
+        .animation(reduceMotion ? .linear(duration: 0.1) : .spring(response: 0.3, dampingFraction: 0.78), value: drag)
+    }
+
+    private var customContent: some View {
         HStack(spacing: 12) {
             if toast.progress == nil && toast.loading {
                 ProgressView().tint(toast.style.iconColor).controlSize(.small)
@@ -128,18 +147,6 @@ private struct ToastKitView: View {
         .padding(toast.style.padding)
         .background(toast.style.background, in: RoundedRectangle(cornerRadius: toast.style.cornerRadius, style: .continuous))
         .shadow(color: toast.style.shadow ? .black.opacity(0.22) : .clear, radius: 10, y: 4)
-        .offset(drag)
-        .opacity(Double(max(CGFloat(0.35), CGFloat(1) - (abs(drag.width) + abs(drag.height)) / CGFloat(700))))
-        .contentShape(Rectangle())
-        .background {
-            GeometryReader { proxy in
-                Color.clear.preference(
-                    key: ToastKitFramePreferenceKey.self,
-                    value: [toast.id: proxy.frame(in: .global)]
-                )
-            }
-        }
-        .toastKitConditional(toast.swipeToDismiss) { $0.gesture(dragGesture) }
         .overlay(alignment: .bottom) {
             if let progress = toast.progress {
                 ProgressView(value: progress, total: 100)
@@ -149,7 +156,45 @@ private struct ToastKitView: View {
                     .animation(reduceMotion ? .linear(duration: 0.1) : .easeInOut(duration: 0.2), value: progress)
             }
         }
-        .animation(reduceMotion ? .linear(duration: 0.1) : .spring(response: 0.3, dampingFraction: 0.78), value: drag)
+    }
+
+    private var nativeContent: some View {
+        HStack(spacing: 12) {
+            if toast.progress == nil && toast.loading {
+                ProgressView().controlSize(.small)
+            } else if let icon = toast.icon {
+                Image(systemName: icon.ios ?? getIconForName(icon.name ?? "circle"))
+                    .font(.title3.weight(.semibold))
+                    .accessibilityHidden(true)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                if let title = toast.title { Text(title).font(.headline) }
+                Text(toast.message).font(.subheadline).fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if let action = toast.action {
+                Button(action.label) { ToastKitManager.shared.pressAction(toastId: toast.id, actionId: action.id) }
+                    .buttonStyle(.borderless)
+                    .font(.subheadline.weight(.semibold))
+            }
+            if toast.dismissible {
+                Button { ToastKitManager.shared.dismiss(toast.id) } label: {
+                    Image(systemName: "xmark").frame(width: 28, height: 28)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Dismiss")
+            }
+        }
+        .padding()
+        .toastKitNativeAppearance()
+        .overlay(alignment: .bottom) {
+            if let progress = toast.progress {
+                ProgressView(value: progress, total: 100)
+                    .padding(.horizontal)
+                    .padding(.bottom, 4)
+                    .animation(reduceMotion ? .linear(duration: 0.1) : .easeInOut(duration: 0.2), value: progress)
+            }
+        }
     }
 
     private var dragGesture: some Gesture {
@@ -192,6 +237,15 @@ private extension View {
                 .frame(maxWidth: .infinity, alignment: toastKitFrameAlignment(align))
         } else {
             self
+        }
+    }
+
+    @ViewBuilder
+    func toastKitNativeAppearance() -> some View {
+        if #available(iOS 26.0, *) {
+            self.glassEffect(.regular, in: .rect(cornerRadius: 16))
+        } else {
+            self.background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
     }
 }

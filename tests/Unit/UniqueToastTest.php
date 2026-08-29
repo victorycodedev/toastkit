@@ -133,12 +133,13 @@ it('releases unique keys through dismiss and dismissAll', function () {
 });
 
 it('updates and dismisses the same toast through its semantic key', function () {
-    $id = $this->uniqueKit->error('Offline')->unique('network')->persistent()->show();
+    $id = $this->uniqueKit->error('Offline')->unique('network')->native(ios: true, android: false)->persistent()->show();
     $updatedId = $this->uniqueKit->updateUnique('network')->success()->message('Online')->duration(2000)->show();
 
     expect($updatedId)->toBe($id)
         ->and($this->native->active)->toHaveCount(1)
         ->and($this->native->active[$id]['unique_key'])->toBe('network')
+        ->and($this->native->active[$id]['native'])->toBe(['ios' => true, 'android' => false])
         ->and($this->native->active[$id]['message'])->toBe('Online');
 
     expect($this->uniqueKit->error('Duplicate')->unique('network')->show())->toBe($id);

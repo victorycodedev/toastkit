@@ -45,6 +45,11 @@ enum ToastKitBridgeNormalizer {
         if let value = changes["position"] { next.position = try enumValue(value, "position") }
         if let value = changes["animation"] { next.animation = try enumValue(value, "animation") }
         if let value = changes["direction"] { next.direction = try enumValue(value, "direction") }
+        if let value = changes["native"] {
+            let mode = try nativeMode(value)
+            next.nativeIos = mode.ios
+            next.nativeAndroid = mode.android
+        }
         if changes.keys.contains("progress") { next.progress = try changes["progress"].map(progress) }
         if let value = changes["loading"] { next.loading = try boolean(value, "loading") }
         if let value = changes["swipe_to_dismiss"] { next.swipeToDismiss = try boolean(value, "swipe_to_dismiss") }
@@ -69,6 +74,8 @@ enum ToastKitBridgeNormalizer {
         return ToastKitConfiguration(
             id: try requiredString(values, "id"),
             uniqueKey: try nullableString(values["unique_key"], "unique_key"),
+            nativeIos: try nativeMode(values["native"] ?? [String: Any]()).ios,
+            nativeAndroid: try nativeMode(values["native"] ?? [String: Any]()).android,
             message: try requiredString(values, "message"),
             title: try nullableString(values["title"], "title"),
             variant: variantName,
@@ -101,6 +108,14 @@ enum ToastKitBridgeNormalizer {
     private static func action(_ value: Any) throws -> ToastKitActionConfiguration {
         guard let map = value as? [String: Any] else { throw ToastKitInputError.invalid("action must be an object") }
         return ToastKitActionConfiguration(id: try requiredString(map, "id"), label: try requiredString(map, "label"))
+    }
+
+    private static func nativeMode(_ value: Any) throws -> (ios: Bool, android: Bool) {
+        guard let map = value as? [String: Any] else { throw ToastKitInputError.invalid("native must be an object") }
+        return (
+            try map["ios"].map { try boolean($0, "native.ios") } ?? false,
+            try map["android"].map { try boolean($0, "native.android") } ?? false
+        )
     }
 
     private static func typography(_ value: Any) throws -> ToastKitTypographyConfiguration {

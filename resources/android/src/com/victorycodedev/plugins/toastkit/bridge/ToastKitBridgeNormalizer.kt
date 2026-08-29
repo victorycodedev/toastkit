@@ -42,6 +42,10 @@ internal object ToastKitBridgeNormalizer {
         changes["position"]?.let { next = next.copy(position = position(it)) }
         changes["animation"]?.let { next = next.copy(animation = animation(it)) }
         changes["direction"]?.let { next = next.copy(direction = direction(it)) }
+        changes["native"]?.let {
+            val mode = nativeMode(it)
+            next = next.copy(nativeIos = mode.first, nativeAndroid = mode.second)
+        }
         if (changes.containsKey("progress")) next = next.copy(progress = optionalValue(changes["progress"])?.let(::progress))
         changes["loading"]?.let { next = next.copy(loading = boolean(it, "loading")) }
         changes["swipe_to_dismiss"]?.let { next = next.copy(swipeToDismiss = boolean(it, "swipe_to_dismiss")) }
@@ -68,6 +72,8 @@ internal object ToastKitBridgeNormalizer {
         return ToastKitConfiguration(
             id = requiredString(values, "id"),
             uniqueKey = nullableString(values["unique_key"], "unique_key"),
+            nativeIos = nativeMode(values["native"] ?: emptyMap<String, Any>()).first,
+            nativeAndroid = nativeMode(values["native"] ?: emptyMap<String, Any>()).second,
             message = requiredString(values, "message"),
             title = nullableString(values["title"], "title"),
             variant = variant(values["variant"] ?: "neutral"),
@@ -100,6 +106,12 @@ internal object ToastKitBridgeNormalizer {
     private fun action(value: Any): ToastKitAction {
         val map = stringMap(value) ?: throw ToastKitInputException("action must be an object")
         return ToastKitAction(requiredString(map, "id"), requiredString(map, "label"))
+    }
+
+    private fun nativeMode(value: Any): Pair<Boolean, Boolean> {
+        val map = stringMap(value) ?: throw ToastKitInputException("native must be an object")
+        return (map["ios"]?.let { boolean(it, "native.ios") } ?: false) to
+            (map["android"]?.let { boolean(it, "native.android") } ?: false)
     }
 
     private fun style(value: Any, fallback: ToastKitStyle): ToastKitStyle {

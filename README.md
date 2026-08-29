@@ -19,6 +19,7 @@ ToastKit renders toasts as native overlays — Jetpack Compose on Android, Swift
     - [Font resolution](#font-resolution)
   - [Updating Toasts](#updating-toasts)
   - [Unique Toasts](#unique-toasts)
+  - [Native Appearance](#native-appearance)
   - [Progress \& Loading](#progress--loading)
   - [Animations \& Direction](#animations--direction)
   - [Presets](#presets)
@@ -340,6 +341,50 @@ Toast::update($id)
     ->message('Uploading 50%...')
     ->show();
 ```
+
+## Native Appearance
+
+ToastKit uses its fully customizable renderer on both platforms by default. Call `native()` when you want each operating system's current design language instead:
+
+```php
+// Native appearance on iOS and Android.
+Toast::success('Saved')
+    ->native()
+    ->show();
+
+// Native iOS, custom ToastKit Android.
+Toast::success('Saved')
+    ->native(ios: true, android: false)
+    ->show();
+
+// Custom ToastKit iOS, native Android.
+Toast::success('Saved')
+    ->native(ios: false, android: true)
+    ->show();
+```
+
+Native mode prioritizes platform appearance. Message, title, variant, icon, action, position, duration, persistence, unique identity, queue/stack behavior, progress, loading, dismissal controls, and swipe behavior remain available. ToastKit-specific colors, typography, corner radius, padding, shadow, animation, and direction are ignored only on a platform where native mode is enabled.
+
+Custom styles are retained in the configuration; `native()` is not a reset. This lets one platform remain fully customized:
+
+```php
+Toast::make('Saved')
+    ->background('#000000')
+    ->native(ios: true, android: false)
+    ->show();
+```
+
+Here iOS uses the system appearance while Android uses ToastKit's custom black appearance. Calling `background()` before or after `native()` produces the same result. Use `native(ios: false, android: false)` to explicitly select the custom renderer on both platforms.
+
+Renderer selection is preserved by sparse updates and can also be changed safely on an existing toast:
+
+```php
+Toast::update($id)
+    ->native(ios: false, android: true)
+    ->show();
+```
+
+On iOS 26 and later, ToastKit uses Apple's system Liquid Glass effect. Earlier supported iOS versions use SwiftUI's native regular material. Android uses the official Material 3 `Snackbar` component inside ToastKit's existing overlay, retaining the established lifecycle and event pipeline.
 
 ## Progress & Loading
 
@@ -950,6 +995,7 @@ Native::test(ProfileScreen::class)
 | `variant(ToastVariant\|string $variant)` | Set the variant by enum or string. |
 | `icon(?string $name = null, ?string $ios = null, ?string $android = null)` | Set an icon using string names, with optional SF Symbol (`ios:`) / Material Icon (`android:`) overrides. See [Icons](#icons). |
 | `position(ToastPosition\|string $position)` | `top`, `center`, or `bottom`. |
+| `native(bool $ios = true, bool $android = true)` | Use platform-native appearance selectively; custom rendering remains the default. |
 | `duration(int $milliseconds)` | Set the visible duration (makes the toast timed). |
 | `persistent(bool $persistent = true)` | Make the toast persistent (no timeout). |
 | `animation(ToastAnimation\|string $animation)` | `fade`, `slide`, `scale`, `spring`, `snap`, `pop`, `reveal`, or `bounce`. |

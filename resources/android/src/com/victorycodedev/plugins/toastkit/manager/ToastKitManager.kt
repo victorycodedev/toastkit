@@ -112,7 +112,7 @@ internal object ToastKitManager {
         waiting.remove(id)
         visible.removeAll { it.id == id }
         exiting.add(id)
-        val exitDuration = if (!state.visible) 0L else when (state.configuration.animation) {
+        val exitDuration = if (!state.visible) 0L else if (state.configuration.nativeAndroid) 160L else when (state.configuration.animation) {
             ToastKitAnimation.SPRING, ToastKitAnimation.BOUNCE -> 450L
             ToastKitAnimation.REVEAL -> 280L
             else -> 260L

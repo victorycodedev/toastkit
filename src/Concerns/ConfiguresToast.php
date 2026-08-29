@@ -92,6 +92,11 @@ trait ConfiguresToast
         return $this->put('position', $this->enumValue(ToastPosition::class, $position, 'position'));
     }
 
+    public function native(bool $ios = true, bool $android = true): static
+    {
+        return $this->put('native', ['ios' => $ios, 'android' => $android]);
+    }
+
     public function duration(int $milliseconds): static
     {
         if ($milliseconds <= 0) throw new InvalidToastConfigurationException('Toast duration must be greater than zero milliseconds.');

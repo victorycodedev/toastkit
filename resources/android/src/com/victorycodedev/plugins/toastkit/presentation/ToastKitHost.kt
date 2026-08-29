@@ -11,8 +11,14 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarDefaults
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -94,7 +100,7 @@ private fun ToastKitCard(toast: ToastKitConfiguration) {
             }
         }
     }
-    val enter = if (reduceMotion) fadeIn(tween(120)) else when (toast.animation) {
+    val enter = if (reduceMotion || toast.nativeAndroid) fadeIn(tween(120)) else when (toast.animation) {
         ToastKitAnimation.FADE -> fadeIn(tween(180))
         ToastKitAnimation.SLIDE -> directionalEnter(toast, tween(220)) + fadeIn()
         ToastKitAnimation.SCALE -> scaleIn(tween(180), initialScale = .9f) + fadeIn()
@@ -104,7 +110,7 @@ private fun ToastKitCard(toast: ToastKitConfiguration) {
         ToastKitAnimation.REVEAL -> expandHorizontally(tween(240), expandFrom = revealAlignment(toast)) + fadeIn(tween(160))
         ToastKitAnimation.BOUNCE -> directionalEnter(toast, spring(dampingRatio = .45f, stiffness = 360f)) + fadeIn(tween(120))
     }
-    val exit = if (reduceMotion) fadeOut(tween(100)) else when (toast.animation) {
+    val exit = if (reduceMotion || toast.nativeAndroid) fadeOut(tween(100)) else when (toast.animation) {
         ToastKitAnimation.FADE -> fadeOut(tween(160))
         ToastKitAnimation.SLIDE -> directionalExit(toast, tween(220)) + fadeOut()
         ToastKitAnimation.SCALE -> scaleOut(tween(160), targetScale = .9f) + fadeOut()
@@ -118,12 +124,17 @@ private fun ToastKitCard(toast: ToastKitConfiguration) {
     val shouldBeVisible = toast.id !in ToastKitManager.exiting
     LaunchedEffect(shouldBeVisible) { visibility.targetState = shouldBeVisible }
     AnimatedVisibility(visibleState = visibility, enter = enter, exit = exit) {
-        Column(
-            modifier = Modifier.padding(vertical = 4.dp).widthIn(max = 560.dp).fillMaxWidth()
+        val interaction = Modifier.padding(vertical = 4.dp).widthIn(max = 560.dp).fillMaxWidth()
                 .graphicsLayer { translationX = displayedX; translationY = displayedY; alpha = (1f - (abs(displayedX) + abs(displayedY)) / 700f).coerceIn(.35f, 1f) }
+                .then(gesture)
+        if (toast.nativeAndroid) {
+            NativeToastKitCard(toast, displayedProgress, interaction)
+        } else {
+        Column(
+            modifier = interaction
                 .then(if (toast.style.shadow) Modifier.shadow(8.dp, RoundedCornerShape(toast.style.cornerRadius.dp)) else Modifier)
                 .clip(RoundedCornerShape(toast.style.cornerRadius.dp)).background(toast.style.background)
-                .padding(toast.style.padding.dp).then(gesture),
+                .padding(toast.style.padding.dp),
         ) {
           Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             if (toast.progress == null && toast.loading) {
@@ -174,6 +185,46 @@ private fun ToastKitCard(toast: ToastKitConfiguration) {
                   trackColor = toast.style.foreground.copy(alpha = .22f),
               )
           }
+        }
+        }
+    }
+}
+
+@Composable
+private fun NativeToastKitCard(toast: ToastKitConfiguration, displayedProgress: Float, modifier: Modifier) {
+    Snackbar(
+        modifier = modifier,
+        action = toast.action?.let { action ->
+            {
+                TextButton(
+                    onClick = { ToastKitManager.action(toast.id, action.id) },
+                    colors = ButtonDefaults.textButtonColors(contentColor = SnackbarDefaults.actionColor),
+                ) { Text(action.label) }
+            }
+        },
+        dismissAction = if (toast.dismissible) {
+            {
+                IconButton(onClick = { ToastKitManager.dismiss(toast.id) }) {
+                    MaterialIcon("close", "Dismiss", size = 20.dp, tint = LocalContentColor.current)
+                }
+            }
+        } else null,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (toast.progress == null && toast.loading) {
+                    CircularProgressIndicator(Modifier.size(22.dp), color = LocalContentColor.current, strokeWidth = 2.5.dp)
+                } else toast.icon?.let {
+                    MaterialIcon(it.android ?: it.name ?: "circle", "Toast icon", size = 24.dp, tint = LocalContentColor.current)
+                }
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    toast.title?.let { Text(it, style = androidx.compose.material3.MaterialTheme.typography.labelLarge) }
+                    Text(toast.message, style = androidx.compose.material3.MaterialTheme.typography.bodyMedium)
+                }
+            }
+            toast.progress?.let {
+                LinearProgressIndicator(progress = { displayedProgress }, modifier = Modifier.fillMaxWidth())
+            }
         }
     }
 }

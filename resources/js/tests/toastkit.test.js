@@ -85,6 +85,27 @@ test("position, duration, persistent and animation are set", () => {
   assert.equal(Toast.make("x").persistent().payload().duration, null);
 });
 
+test("native appearance is custom by default and selectable per platform", () => {
+  assert.deepEqual(Toast.success("Default").payload().native, { ios: false, android: false });
+  assert.deepEqual(Toast.success("Both").native().payload().native, { ios: true, android: true });
+  assert.deepEqual(Toast.success("iOS").native({ ios: true, android: false }).payload().native, { ios: true, android: false });
+  assert.deepEqual(Toast.success("Android").native({ ios: false, android: true }).payload().native, { ios: false, android: true });
+  assert.deepEqual(Toast.success("Neither").native({ ios: false, android: false }).payload().native, { ios: false, android: false });
+});
+
+test("native appearance preserves custom styles and is chain-order independent", () => {
+  const before = Toast.make("Before").background("#000000").native({ ios: true, android: false }).payload();
+  const after = Toast.make("After").native({ ios: true, android: false }).background("#000000").payload();
+  assert.deepEqual(before.native, after.native);
+  assert.deepEqual(before.style, after.style);
+  assert.equal(before.style.background, "#000000");
+});
+
+test("native appearance can be changed through a sparse update", () => {
+  const payload = Toast.update("toast").native({ ios: false, android: true }).payload();
+  assert.deepEqual(payload.changes, { native: { ios: false, android: true } });
+});
+
 test("new animations, direction, progress and loading are set", () => {
   for (const animation of ["snap", "pop", "reveal", "bounce"])
     assert.equal(Toast.make("x").animation(animation).payload().animation, animation);

@@ -99,11 +99,11 @@ final class ToastKitManager: ObservableObject {
             ToastKitUniqueRegistry.shared.release(state.configuration)
             return
         }
-        let milliseconds = switch state.configuration.animation {
+        let milliseconds = if state.configuration.nativeIos { 180 } else { switch state.configuration.animation {
         case .spring, .bounce: 450
         case .reveal: 280
         default: 260
-        }
+        } }
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(milliseconds))
             ToastKitUniqueRegistry.shared.release(state.configuration)

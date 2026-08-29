@@ -62,6 +62,7 @@ export class PendingToast extends PendingToastBase {
       title: null,
       variant: "neutral",
       position: "bottom",
+      native: { ios: false, android: false },
       duration: 3000,
       persistent: false,
       animation: "scale",
