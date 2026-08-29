@@ -4,6 +4,45 @@ Rich, customizable native toast notifications for [NativePHP Mobile](https://nat
 
 ToastKit renders toasts as native overlays — Jetpack Compose on Android, SwiftUI on iOS — so they look and feel like part of the operating system. No Blade toast component is required.
 
+## Table of Contents
+
+- [ToastKit](#toastkit)
+  - [Table of Contents](#table-of-contents)
+  - [Feature Highlights](#feature-highlights)
+  - [Installation](#installation)
+  - [Quick Start](#quick-start)
+  - [Basic Toasts](#basic-toasts)
+  - [Custom Toasts](#custom-toasts)
+  - [Icons](#icons)
+    - [Platform overrides](#platform-overrides)
+  - [Typography](#typography)
+    - [Font resolution](#font-resolution)
+  - [Updating Toasts](#updating-toasts)
+  - [Unique Toasts](#unique-toasts)
+  - [Progress \& Loading](#progress--loading)
+  - [Animations \& Direction](#animations--direction)
+  - [Presets](#presets)
+    - [Exceptions](#exceptions)
+      - [Migrating exception catches](#migrating-exception-catches)
+  - [Dismissing Toasts](#dismissing-toasts)
+  - [Actions \& Events](#actions--events)
+  - [Queue \& Stack](#queue--stack)
+  - [JavaScript Usage](#javascript-usage)
+  - [Complete NativeComponent Example](#complete-nativecomponent-example)
+  - [Real-world Example with NativePHP Fetch](#real-world-example-with-nativephp-fetch)
+  - [Events](#events)
+  - [Testing](#testing)
+  - [API Reference](#api-reference)
+    - [`Toast` facade](#toast-facade)
+    - [`PendingToast` builder](#pendingtoast-builder)
+    - [`PendingToastUpdate` builder](#pendingtoastupdate-builder)
+    - [Enums](#enums)
+    - [Defaults](#defaults)
+  - [Compatibility](#compatibility)
+  - [Permissions \& Dependencies](#permissions--dependencies)
+  - [Contributing](#contributing)
+  - [License](#license)
+
 ## Feature Highlights
 
 - **Five variants** — `success`, `error`, `warning`, `info`, and `neutral`.
@@ -258,11 +297,32 @@ Toast::dismissUnique('contacts-sync');
 
 A key remains reserved until the toast has fully left the screen, including its exit animation. It is then reusable after every terminal path: timeout, swipe, action, close/programmatic dismissal, replacement, queue overflow, or `dismissAll()`. Updating a toast never changes its unique key. Calling `updateUnique()` or `dismissUnique()` for a key that is not active throws `ToastKitException`.
 
-Unique keys also work with presets. Put the operation-specific key on each fresh builder so the preset itself remains reusable:
+Unique keys also work with presets. Define the key as part of the preset during application boot when that preset represents one specific operation:
 
 ```php
-Toast::preset('syncing')
-    ->unique('contacts-sync')
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+use Victorycodedev\ToastKit\PendingToast;
+use Victorycodedev\ToastKit\Facades\Toast;
+
+final class AppServiceProvider extends ServiceProvider
+{
+    public function boot(): void
+    {
+        Toast::definePreset('contacts-sync', fn (PendingToast $toast) => $toast
+            ->info()
+            ->unique('contacts-sync')
+            ->persistent()
+            ->loading());
+    }
+}
+```
+
+The unique key is already included, so callers only use the preset and add any per-toast configuration they need:
+
+```php
+Toast::preset('contacts-sync')
     ->message('Syncing contacts...')
     ->show();
 ```
