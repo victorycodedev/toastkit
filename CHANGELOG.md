@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Optional whole-toast `opacity()` styling with clamping, sparse updates, preset support, and PHP/JavaScript parity.
 - Platform-selective `native()` rendering with iOS Liquid Glass/native material fallback, Android Material 3 appearance, sparse update support, presets, and JavaScript parity.
 - Unique toasts through `unique()`, `updateUnique()`, and `dismissUnique()`, with native lifecycle-aware deduplication across visible, queued, stacked, and persistent states on Android and iOS.
 - JavaScript parity for unique toast creation, updates, dismissal, and bridge-resolved UUIDs.

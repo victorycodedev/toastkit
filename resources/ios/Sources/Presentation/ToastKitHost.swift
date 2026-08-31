@@ -99,6 +99,7 @@ private struct ToastKitView: View {
         }
         .offset(drag)
         .opacity(Double(max(CGFloat(0.35), CGFloat(1) - (abs(drag.width) + abs(drag.height)) / CGFloat(700))))
+        .toastKitConfiguredOpacity(toast.opacity)
         .contentShape(Rectangle())
         .background {
             GeometryReader { proxy in
@@ -224,6 +225,11 @@ private struct ToastKitFramePreferenceKey: PreferenceKey {
 }
 
 private extension View {
+    @ViewBuilder
+    func toastKitConfiguredOpacity(_ opacity: Double?) -> some View {
+        if let opacity { self.opacity(opacity) } else { self }
+    }
+
     @ViewBuilder
     func toastKitConditional<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
         if condition { transform(self) } else { self }

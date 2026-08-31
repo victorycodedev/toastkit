@@ -106,6 +106,23 @@ test("native appearance can be changed through a sparse update", () => {
   assert.deepEqual(payload.changes, { native: { ios: false, android: true } });
 });
 
+test("opacity is opt-in, defaults to 0.8, preserves zero, and clamps", () => {
+  assert.equal("opacity" in Toast.success("Default").payload(), false);
+  assert.equal(Toast.success("Subtle").opacity().payload().opacity, 0.8);
+  assert.equal(Toast.success("Half").opacity(0.5).payload().opacity, 0.5);
+  assert.equal(Toast.success("Hidden").opacity(0).payload().opacity, 0);
+  assert.equal(Toast.success("Opaque").opacity(1).payload().opacity, 1);
+  assert.equal(Toast.success("Low").opacity(-1).payload().opacity, 0);
+  assert.equal(Toast.success("High").opacity(2).payload().opacity, 1);
+});
+
+test("opacity is sparse in updates and omitted updates do not reset it", () => {
+  assert.deepEqual(Toast.update("toast").opacity(0).payload().changes, { opacity: 0 });
+  assert.deepEqual(Toast.update("toast").message("Almost finished").payload().changes, {
+    message: "Almost finished",
+  });
+});
+
 test("new animations, direction, progress and loading are set", () => {
   for (const animation of ["snap", "pop", "reveal", "bounce"])
     assert.equal(Toast.make("x").animation(animation).payload().animation, animation);

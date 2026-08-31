@@ -41,6 +41,7 @@ struct ToastKitConfiguration: Identifiable {
     let uniqueKey: String?
     var nativeIos: Bool
     var nativeAndroid: Bool
+    var opacity: Double?
     var message: String
     var title: String?
     var variant: String

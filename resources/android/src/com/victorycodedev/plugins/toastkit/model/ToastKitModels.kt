@@ -34,6 +34,7 @@ internal data class ToastKitConfiguration(
     val uniqueKey: String?,
     val nativeIos: Boolean,
     val nativeAndroid: Boolean,
+    val opacity: Float?,
     val message: String,
     val title: String?,
     val variant: String,
