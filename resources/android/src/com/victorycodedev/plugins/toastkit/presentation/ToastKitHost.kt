@@ -23,6 +23,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
@@ -126,6 +127,7 @@ private fun ToastKitCard(toast: ToastKitConfiguration) {
     AnimatedVisibility(visibleState = visibility, enter = enter, exit = exit) {
         val interaction = Modifier.padding(vertical = 4.dp).widthIn(max = 560.dp).fillMaxWidth()
                 .graphicsLayer { translationX = displayedX; translationY = displayedY; alpha = (1f - (abs(displayedX) + abs(displayedY)) / 700f).coerceIn(.35f, 1f) }
+                .then(toast.opacity?.let { Modifier.alpha(it) } ?: Modifier)
                 .then(gesture)
         if (toast.nativeAndroid) {
             NativeToastKitCard(toast, displayedProgress, interaction)

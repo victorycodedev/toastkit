@@ -97,6 +97,11 @@ trait ConfiguresToast
         return $this->put('native', ['ios' => $ios, 'android' => $android]);
     }
 
+    public function opacity(float $opacity = 0.8): static
+    {
+        return $this->put('opacity', max(0.0, min(1.0, $opacity)));
+    }
+
     public function duration(int $milliseconds): static
     {
         if ($milliseconds <= 0) throw new InvalidToastConfigurationException('Toast duration must be greater than zero milliseconds.');

@@ -58,6 +58,11 @@ export class PendingToastBase {
   native({ ios = true, android = true } = {}) {
     return this.set("native", { ios: Boolean(ios), android: Boolean(android) });
   }
+  opacity(value = 0.8) {
+    if (!Number.isFinite(value))
+      throw new TypeError("opacity must be a finite number");
+    return this.set("opacity", Math.max(0, Math.min(1, value)));
+  }
   duration(value) {
     this.set("persistent", false);
     return this.set("duration", positiveInteger(value, "duration"));
@@ -74,7 +79,8 @@ export class PendingToastBase {
     return this.set("direction", oneOf(value, "direction"));
   }
   progress(value) {
-    if (!Number.isFinite(value)) throw new TypeError("progress must be a finite number");
+    if (!Number.isFinite(value))
+      throw new TypeError("progress must be a finite number");
     return this.set("progress", Math.max(0, Math.min(100, value)));
   }
   loading(enabled = true) {

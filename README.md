@@ -20,6 +20,7 @@ ToastKit renders toasts as native overlays — Jetpack Compose on Android, Swift
   - [Updating Toasts](#updating-toasts)
   - [Unique Toasts](#unique-toasts)
   - [Native Appearance](#native-appearance)
+  - [Opacity](#opacity)
   - [Progress \& Loading](#progress--loading)
   - [Animations \& Direction](#animations--direction)
   - [Presets](#presets)
@@ -385,6 +386,24 @@ Toast::update($id)
 ```
 
 On iOS 26 and later, ToastKit uses Apple's system Liquid Glass effect. Earlier supported iOS versions use SwiftUI's native regular material. Android uses the official Material 3 `Snackbar` component inside ToastKit's existing overlay, retaining the established lifecycle and event pipeline.
+
+## Opacity
+
+Opacity is optional and applies to the entire toast, including its content and controls:
+
+```php
+Toast::success('Saved')->opacity()->show();      // 0.8
+Toast::success('Saved')->opacity(0.5)->show();   // 50%
+Toast::success('Saved')->opacity(1.0)->show();   // Fully opaque
+```
+
+If `opacity()` is never called, ToastKit behaves exactly as before. Accepted values are `0.0`–`1.0`; values outside that range are clamped. Opacity also works in presets and sparse updates:
+
+```php
+Toast::definePreset('subtle', fn ($toast) => $toast->opacity()->animation('fade'));
+
+Toast::update($id)->opacity(0.9)->show();
+```
 
 ## Progress & Loading
 
@@ -996,6 +1015,7 @@ Native::test(ProfileScreen::class)
 | `icon(?string $name = null, ?string $ios = null, ?string $android = null)` | Set an icon using string names, with optional SF Symbol (`ios:`) / Material Icon (`android:`) overrides. See [Icons](#icons). |
 | `position(ToastPosition\|string $position)` | `top`, `center`, or `bottom`. |
 | `native(bool $ios = true, bool $android = true)` | Use platform-native appearance selectively; custom rendering remains the default. |
+| `opacity(float $opacity = 0.8)` | Set whole-toast opacity from `0.0` to `1.0`; out-of-range values are clamped. |
 | `duration(int $milliseconds)` | Set the visible duration (makes the toast timed). |
 | `persistent(bool $persistent = true)` | Make the toast persistent (no timeout). |
 | `animation(ToastAnimation\|string $animation)` | `fade`, `slide`, `scale`, `spring`, `snap`, `pop`, `reveal`, or `bounce`. |

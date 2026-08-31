@@ -50,6 +50,7 @@ enum ToastKitBridgeNormalizer {
             next.nativeIos = mode.ios
             next.nativeAndroid = mode.android
         }
+        if let value = changes["opacity"] { next.opacity = try opacity(value) }
         if changes.keys.contains("progress") { next.progress = try changes["progress"].map(progress) }
         if let value = changes["loading"] { next.loading = try boolean(value, "loading") }
         if let value = changes["swipe_to_dismiss"] { next.swipeToDismiss = try boolean(value, "swipe_to_dismiss") }
@@ -76,6 +77,7 @@ enum ToastKitBridgeNormalizer {
             uniqueKey: try nullableString(values["unique_key"], "unique_key"),
             nativeIos: try nativeMode(values["native"] ?? [String: Any]()).ios,
             nativeAndroid: try nativeMode(values["native"] ?? [String: Any]()).android,
+            opacity: try values["opacity"].map(opacity),
             message: try requiredString(values, "message"),
             title: try nullableString(values["title"], "title"),
             variant: variantName,
@@ -225,5 +227,11 @@ enum ToastKitBridgeNormalizer {
             throw ToastKitInputError.invalid("progress must be a finite number")
         }
         return min(100, max(0, result))
+    }
+    private static func opacity(_ value: Any) throws -> Double {
+        guard let result = (value as? NSNumber)?.doubleValue, result.isFinite else {
+            throw ToastKitInputError.invalid("opacity must be a finite number")
+        }
+        return min(1, max(0, result))
     }
 }

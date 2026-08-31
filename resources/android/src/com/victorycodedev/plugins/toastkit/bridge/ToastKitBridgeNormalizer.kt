@@ -46,6 +46,7 @@ internal object ToastKitBridgeNormalizer {
             val mode = nativeMode(it)
             next = next.copy(nativeIos = mode.first, nativeAndroid = mode.second)
         }
+        if (changes.containsKey("opacity")) next = next.copy(opacity = opacity(changes["opacity"] ?: throw ToastKitInputException("opacity must be numeric")))
         if (changes.containsKey("progress")) next = next.copy(progress = optionalValue(changes["progress"])?.let(::progress))
         changes["loading"]?.let { next = next.copy(loading = boolean(it, "loading")) }
         changes["swipe_to_dismiss"]?.let { next = next.copy(swipeToDismiss = boolean(it, "swipe_to_dismiss")) }
@@ -74,6 +75,7 @@ internal object ToastKitBridgeNormalizer {
             uniqueKey = nullableString(values["unique_key"], "unique_key"),
             nativeIos = nativeMode(values["native"] ?: emptyMap<String, Any>()).first,
             nativeAndroid = nativeMode(values["native"] ?: emptyMap<String, Any>()).second,
+            opacity = values["opacity"]?.let(::opacity),
             message = requiredString(values, "message"),
             title = nullableString(values["title"], "title"),
             variant = variant(values["variant"] ?: "neutral"),
@@ -226,6 +228,11 @@ internal object ToastKitBridgeNormalizer {
         val result = (value as? Number)?.toFloat() ?: throw ToastKitInputException("progress must be numeric")
         requireInput(result.isFinite(), "progress must be finite")
         return result.coerceIn(0f, 100f)
+    }
+    private fun opacity(value: Any): Float {
+        val result = (value as? Number)?.toFloat() ?: throw ToastKitInputException("opacity must be numeric")
+        requireInput(result.isFinite(), "opacity must be finite")
+        return result.coerceIn(0f, 1f)
     }
     private fun stringMap(value: Any?): Map<String, Any>? = when (value) {
         is JSONObject -> value.keys().asSequence().associate { key -> key to value.get(key) }
