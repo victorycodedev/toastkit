@@ -36,3 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking:** ToastKit's public exceptions now extend the package-owned `ToastKitException` base, which extends `RuntimeException`. Replace ToastKit-specific `InvalidArgumentException` catches with `ToastKitException`.
 - Composer requirement raised to PHP `^8.4` and NativePHP Mobile `^4.1`.
 - Pest upgraded to `^4.0`.
+
+### Fixed
+
+- Android toasts now draw above Material3 bottom sheets, dialogs and any other window the app opens, including ones opened while a toast is showing. Each position is hosted in its own non-focusable window instead of the activity's decor view, so a text field keeps focus and the keyboard. Bottom toasts sit above the keyboard. On Android 14+ only the toast cards take touches; on Android 10 to 13 the padding around them does too.
