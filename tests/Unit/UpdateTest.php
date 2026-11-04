@@ -37,6 +37,19 @@ it('updates icon and style independently', function () {
     ]);
 });
 
+it('updates a custom icon sparsely', function () {
+    $this->kit->update('upload')
+        ->icon('custom:payment', android: 'custom:payment-android')
+        ->show();
+
+    expect($this->calls[0][1]['changes'])->toBe([
+        'icon' => [
+            'name' => 'custom:payment',
+            'android' => 'custom:payment-android',
+        ],
+    ]);
+});
+
 it('updates icon size sparsely', function () {
     $this->kit->update('upload')->iconSize('lg')->show();
 

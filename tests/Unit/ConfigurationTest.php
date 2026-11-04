@@ -75,6 +75,14 @@ it('sets a platform override without a logical name', function () {
     expect($this->calls[0][1]['icon'])->toBe(['ios' => 'star.fill']);
 });
 
+it('sets custom platform overrides without a logical name', function () {
+    $ios = $this->kit->make('iOS')->icon(ios: 'custom:payment-ios')->payload();
+    $android = $this->kit->make('Android')->icon(android: 'custom:payment-android')->payload();
+
+    expect($ios['icon'])->toBe(['ios' => 'custom:payment-ios'])
+        ->and($android['icon'])->toBe(['android' => 'custom:payment-android']);
+});
+
 it('rejects an icon with no name or overrides', function () {
     expect(fn () => $this->kit->make('x')->icon())->toThrow(InvalidToastConfigurationException::class);
 });

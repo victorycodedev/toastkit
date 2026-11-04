@@ -124,6 +124,32 @@ test("icon rejects invalid custom icon names", () => {
   );
 });
 
+test("icon supports custom platform overrides without a shared name", () => {
+  assert.deepEqual(
+    Toast.make("x").icon(null, { ios: "custom:payment-ios" }).payload().icon,
+    { ios: "custom:payment-ios" },
+  );
+  assert.deepEqual(
+    Toast.make("x").icon(null, { android: "custom:payment-android" }).payload()
+      .icon,
+    { android: "custom:payment-android" },
+  );
+});
+
+test("update sends custom icons sparsely", () => {
+  assert.deepEqual(
+    Toast.update("one")
+      .icon("custom:payment", { android: "custom:payment-android" })
+      .payload().changes,
+    {
+      icon: {
+        name: "custom:payment",
+        android: "custom:payment-android",
+      },
+    },
+  );
+});
+
 test("icon size accepts only predefined sizes", () => {
   assert.equal(Toast.make("x").iconSize("lg").payload().icon_size, "lg");
   assert.deepEqual(Toast.update("one").iconSize("sm").payload().changes, {
