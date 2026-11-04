@@ -3,6 +3,7 @@
 namespace Victorycodedev\ToastKit\Concerns;
 
 use BackedEnum;
+use Native\Mobile\Icon\Icon;
 use Victorycodedev\ToastKit\Enums\ToastAnimation;
 use Victorycodedev\ToastKit\Enums\ToastDirection;
 use Victorycodedev\ToastKit\Enums\ToastPosition;
@@ -81,9 +82,9 @@ trait ConfiguresToast
     public function icon(?string $name = null, ?string $ios = null, ?string $android = null): static
     {
         $icon = array_filter([
-            'name' => $this->nullableNonEmpty($name, 'Icon name'),
-            'ios' => $this->nullableNonEmpty($ios, 'iOS icon name'),
-            'android' => $this->nullableNonEmpty($android, 'Android icon name'),
+            'name' => $this->iconName($name, 'Icon name'),
+            'ios' => $this->iconName($ios, 'iOS icon name'),
+            'android' => $this->iconName($android, 'Android icon name'),
         ], static fn($value) => $value !== null);
         if ($icon === []) throw new InvalidToastConfigurationException('An icon name or platform override is required.');
         return $this->put('icon', $icon);
@@ -280,6 +281,20 @@ trait ConfiguresToast
             throw new InvalidToastConfigurationException('Colors must use #RGB, #RRGGBB, or #AARRGGBB hexadecimal format.');
         }
         return strtoupper($color);
+    }
+
+    private function iconName(?string $value, string $label): ?string
+    {
+        $value = $this->nullableNonEmpty($value, $label);
+
+        if ($value !== null && Icon::isCustom($value)
+            && ! Icon::isValidName(substr($value, strlen(Icon::PREFIX)))) {
+            throw new InvalidToastConfigurationException(
+                "{$label} custom icon must use custom: followed by a lowercase kebab-case name."
+            );
+        }
+
+        return $value;
     }
 
     private function enumValue(string $enum, BackedEnum|string $value, string $label): string

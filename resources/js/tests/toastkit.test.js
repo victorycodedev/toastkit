@@ -72,6 +72,84 @@ test("icon supports logical names and platform overrides", () => {
   );
 });
 
+test("icon supports shared custom icons and mixed platform icons", () => {
+  assert.deepEqual(Toast.make("x").icon("custom:payment").payload().icon, {
+    name: "custom:payment",
+  });
+  assert.deepEqual(
+    Toast.make("x")
+      .icon("check", {
+        ios: "checkmark.circle.fill",
+        android: "custom:payment-android",
+      })
+      .payload().icon,
+    {
+      name: "check",
+      ios: "checkmark.circle.fill",
+      android: "custom:payment-android",
+    },
+  );
+  assert.deepEqual(
+    Toast.make("x")
+      .icon("custom:payment", {
+        ios: "custom:payment-ios",
+        android: "verified",
+      })
+      .payload().icon,
+    {
+      name: "custom:payment",
+      ios: "custom:payment-ios",
+      android: "verified",
+    },
+  );
+});
+
+test("icon rejects invalid custom icon names", () => {
+  for (const icon of [
+    "custom:",
+    "custom:Payment",
+    "custom:payment_icon",
+    "custom:icons/payment",
+    "custom:payment--icon",
+  ]) {
+    assert.throws(() => Toast.make("x").icon(icon), /lowercase kebab-case/);
+  }
+  assert.throws(
+    () => Toast.make("x").icon("check", { ios: "custom:Payment" }),
+    /lowercase kebab-case/,
+  );
+  assert.throws(
+    () => Toast.make("x").icon("check", { android: "custom:payment_icon" }),
+    /lowercase kebab-case/,
+  );
+});
+
+test("icon supports custom platform overrides without a shared name", () => {
+  assert.deepEqual(
+    Toast.make("x").icon(null, { ios: "custom:payment-ios" }).payload().icon,
+    { ios: "custom:payment-ios" },
+  );
+  assert.deepEqual(
+    Toast.make("x").icon(null, { android: "custom:payment-android" }).payload()
+      .icon,
+    { android: "custom:payment-android" },
+  );
+});
+
+test("update sends custom icons sparsely", () => {
+  assert.deepEqual(
+    Toast.update("one")
+      .icon("custom:payment", { android: "custom:payment-android" })
+      .payload().changes,
+    {
+      icon: {
+        name: "custom:payment",
+        android: "custom:payment-android",
+      },
+    },
+  );
+});
+
 test("icon size accepts only predefined sizes", () => {
   assert.equal(Toast.make("x").iconSize("lg").payload().icon_size, "lg");
   assert.deepEqual(Toast.update("one").iconSize("sm").payload().changes, {

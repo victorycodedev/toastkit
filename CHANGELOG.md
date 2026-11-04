@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- NativePHP custom SVG icon support through `custom:<name>`, including shared icons, mixed SF Symbol/Material/custom platform overrides, tinting, sizing, validation, and missing-asset fallback behavior.
 - Optional whole-toast `opacity()` styling with clamping, sparse updates, preset support, and PHP/JavaScript parity.
 - Platform-selective `native()` rendering with iOS Liquid Glass/native material fallback, Android Material 3 appearance, sparse update support, presets, and JavaScript parity.
 - Unique toasts through `unique()`, `updateUnique()`, and `dismissUnique()`, with native lifecycle-aware deduplication across visible, queued, stacked, and persistent states on Android and iOS.
@@ -33,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- NativePHP Mobile minimum requirement raised from `^4.1` to `^4.7` for the custom icon build and runtime asset pipeline.
 - **Breaking:** ToastKit's public exceptions now extend the package-owned `ToastKitException` base, which extends `RuntimeException`. Replace ToastKit-specific `InvalidArgumentException` catches with `ToastKitException`.
 - Composer requirement raised to PHP `^8.4` and NativePHP Mobile `^4.1`.
 - Pest upgraded to `^4.0`.

@@ -15,6 +15,7 @@ ToastKit renders toasts as native overlays — Jetpack Compose on Android, Swift
   - [Custom Toasts](#custom-toasts)
   - [Icons](#icons)
     - [Platform overrides](#platform-overrides)
+    - [Custom SVG icons](#custom-svg-icons)
     - [Icon size](#icon-size)
   - [Typography](#typography)
     - [Font resolution](#font-resolution)
@@ -50,7 +51,7 @@ ToastKit renders toasts as native overlays — Jetpack Compose on Android, Swift
 ## Feature Highlights
 
 - **Five variants** — `success`, `error`, `warning`, `info`, and `neutral`.
-- **Rich content** — title, message, and icons with per-platform overrides.
+- **Rich content** — title, message, system icons, custom SVG icons, and per-platform overrides.
 - **Full customization** — position, animation direction, progress, loading, swipe-to-dismiss, close control, colors, corner radius, padding, and shadow.
 - **Action buttons** — a native action button with its own ID and pressed event.
 - **Queue strategy** — FIFO, one toast at a time.
@@ -181,6 +182,52 @@ You can pass either override on its own:
 ```php
 Toast::make('Rated')->icon(ios: 'star.fill')->show();
 ```
+
+### Custom SVG icons
+
+ToastKit supports the custom SVG icons built by NativePHP Mobile 4.7 and later. Put a single-color SVG directly in your application's `resources/icons` directory:
+
+```text
+resources/icons/payment.svg
+```
+
+Then reference it with NativePHP's `custom:` prefix:
+
+```php
+use Native\Mobile\Icon\Icon;
+
+Toast::make('Payment successful')
+    ->icon('custom:payment')
+    ->iconColor('#22C55E')
+    ->show();
+
+// NativePHP's helper returns the same `custom:payment` string.
+Toast::make('Payment successful')->icon(Icon::custom('payment'))->show();
+```
+
+The shared name can be custom, or custom and platform icons can be mixed freely. A platform override wins on that platform and `name` remains the fallback:
+
+```php
+Toast::make('Payment successful')
+    ->icon(
+        name: 'check',                         // shared fallback
+        ios: 'checkmark.circle.fill',          // SF Symbol
+        android: 'custom:payment-android',     // custom SVG
+    )
+    ->show();
+
+Toast::make('Payment successful')
+    ->icon(
+        name: 'custom:payment',                // custom on both by default
+        ios: 'custom:payment-ios',             // custom iOS override
+        android: 'verified',                   // Material Icon override
+    )
+    ->show();
+```
+
+Custom icon filenames must contain lowercase letters and numbers joined by single hyphens, such as `payment-card.svg`; subdirectories, underscores, uppercase letters, and consecutive hyphens are not supported. NativePHP compiles the SVG into an iOS template asset and Android `VectorDrawable`, so run a full native build after adding or changing an icon—hot reload is not enough.
+
+Custom icons are single-color and use `iconColor()`. `iconSize()` works with them in ToastKit's standard and dynamic renderers. If an asset is unavailable, including in Jump, NativePHP logs a warning and falls back to the system icon matching the bare name. See NativePHP's [custom icon requirements and supported SVG features](https://nativephp.com/docs/mobile/4/edge-components/icon#custom-icons).
 
 ### Icon size
 
@@ -1098,7 +1145,7 @@ Native::test(ProfileScreen::class)
 | `titleText(?string $font = null, $size = null, $weight = null, $align = null, ?bool $italic = null)` | Configure title typography. See [Typography](#typography). |
 | `success()` / `error()` / `warning()` / `info()` / `neutral()` | Set the variant. |
 | `variant(ToastVariant\|string $variant)` | Set the variant by enum or string. |
-| `icon(?string $name = null, ?string $ios = null, ?string $android = null)` | Set an icon using string names, with optional SF Symbol (`ios:`) / Material Icon (`android:`) overrides. See [Icons](#icons). |
+| `icon(?string $name = null, ?string $ios = null, ?string $android = null)` | Set a shared, platform-specific, or `custom:` SVG icon. Custom and system icons can be mixed across platforms. See [Icons](#icons). |
 | `iconSize(string $size)` | Set custom-renderer icon size to `sm`, `md`, or `lg`; native appearance ignores it. |
 | `position(ToastPosition\|string $position)` | `top`, `center`, or `bottom`. |
 | `presentation(ToastPresentation\|string $presentation)` | Select `standard` or `dynamic` presentation. |
@@ -1175,7 +1222,7 @@ Native::test(ProfileScreen::class)
 | Requirement | Version |
 | --- | --- |
 | PHP | 8.4+ |
-| NativePHP Mobile | 4.1+ |
+| NativePHP Mobile | 4.7+ |
 | Android | API 29+ (Android 10) |
 | iOS | 18.0+ |
 

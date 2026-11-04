@@ -39,10 +39,48 @@ it('sets platform icon overrides', function () {
     ]);
 });
 
+it('supports custom icons shared and mixed with platform icons', function () {
+    $shared = $this->kit->make('Shared')->icon('custom:payment')->payload();
+    $mixed = $this->kit->make('Mixed')
+        ->icon('check', ios: 'checkmark.circle.fill', android: 'custom:payment-android')
+        ->payload();
+    $reverse = $this->kit->make('Reverse')
+        ->icon('custom:payment', ios: 'custom:payment-ios', android: 'verified')
+        ->payload();
+
+    expect($shared['icon'])->toBe(['name' => 'custom:payment'])
+        ->and($mixed['icon'])->toBe([
+            'name' => 'check',
+            'ios' => 'checkmark.circle.fill',
+            'android' => 'custom:payment-android',
+        ])
+        ->and($reverse['icon'])->toBe([
+            'name' => 'custom:payment',
+            'ios' => 'custom:payment-ios',
+            'android' => 'verified',
+        ]);
+});
+
+it('rejects invalid custom icon names in every icon slot', function () {
+    expect(fn () => $this->kit->make('x')->icon('custom:'))->toThrow(InvalidToastConfigurationException::class)
+        ->and(fn () => $this->kit->make('x')->icon(ios: 'custom:Payment'))->toThrow(InvalidToastConfigurationException::class)
+        ->and(fn () => $this->kit->make('x')->icon(android: 'custom:payment_icon'))->toThrow(InvalidToastConfigurationException::class)
+        ->and(fn () => $this->kit->make('x')->icon('custom:icons/payment'))->toThrow(InvalidToastConfigurationException::class)
+        ->and(fn () => $this->kit->make('x')->icon('custom:payment--icon'))->toThrow(InvalidToastConfigurationException::class);
+});
+
 it('sets a platform override without a logical name', function () {
     $this->kit->make('Saved')->icon(ios: 'star.fill')->show();
 
     expect($this->calls[0][1]['icon'])->toBe(['ios' => 'star.fill']);
+});
+
+it('sets custom platform overrides without a logical name', function () {
+    $ios = $this->kit->make('iOS')->icon(ios: 'custom:payment-ios')->payload();
+    $android = $this->kit->make('Android')->icon(android: 'custom:payment-android')->payload();
+
+    expect($ios['icon'])->toBe(['ios' => 'custom:payment-ios'])
+        ->and($android['icon'])->toBe(['android' => 'custom:payment-android']);
 });
 
 it('rejects an icon with no name or overrides', function () {
