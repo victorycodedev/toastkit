@@ -22,7 +22,7 @@
     ],
     "require": {
         "php": "^8.4",
-        "nativephp/mobile": "^4.1"
+        "nativephp/mobile": "^4.7"
     },
     "autoload": {
         "psr-4": {

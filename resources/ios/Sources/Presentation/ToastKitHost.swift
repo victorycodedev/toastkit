@@ -1,5 +1,23 @@
 import SwiftUI
 
+private struct ToastKitIconView: View {
+    let name: String
+    let pointSize: CGFloat
+
+    var body: some View {
+        if let asset = NativeIcon.customAssetName(name) {
+            Image(asset)
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(width: pointSize, height: pointSize)
+        } else {
+            Image(systemName: getIconForName(name))
+                .font(.system(size: pointSize, weight: .semibold))
+        }
+    }
+}
+
 struct ToastKitHost: View {
     @ObservedObject private var manager = ToastKitManager.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -166,8 +184,10 @@ private struct ToastKitView: View {
                         .frame(width: 24, height: 24)
                 } else {
                     let icon = toast.icon
-                    Image(systemName: icon?.ios ?? getIconForName(icon?.name ?? "bell.fill"))
-                        .font(.system(size: toastKitIconSize(toast.iconSize, fallback: 20), weight: .semibold))
+                    ToastKitIconView(
+                        name: icon?.ios ?? icon?.name ?? "bell.fill",
+                        pointSize: toastKitIconSize(toast.iconSize, fallback: 20)
+                    )
                         .foregroundStyle(toast.style.iconColor)
                         .frame(width: 24, height: 24)
                         .accessibilityHidden(true)
@@ -244,8 +264,11 @@ private struct ToastKitView: View {
             if toast.progress == nil && toast.loading {
                 ProgressView().tint(toast.style.iconColor).controlSize(.small)
             } else if let icon = toast.icon {
-                Image(systemName: icon.ios ?? getIconForName(icon.name ?? "circle"))
-                    .font(.system(size: toastKitIconSize(toast.iconSize, fallback: 21), weight: .semibold)).foregroundStyle(toast.style.iconColor)
+                ToastKitIconView(
+                    name: icon.ios ?? icon.name ?? "circle",
+                    pointSize: toastKitIconSize(toast.iconSize, fallback: 21)
+                )
+                    .foregroundStyle(toast.style.iconColor)
                     .accessibilityHidden(true)
             }
         VStack(alignment: .leading, spacing: 2) {
@@ -297,8 +320,7 @@ private struct ToastKitView: View {
             if toast.progress == nil && toast.loading {
                 ProgressView().controlSize(.small)
             } else if let icon = toast.icon {
-                Image(systemName: icon.ios ?? getIconForName(icon.name ?? "circle"))
-                    .font(.title3.weight(.semibold))
+                ToastKitIconView(name: icon.ios ?? icon.name ?? "circle", pointSize: 20)
                     .accessibilityHidden(true)
             }
             VStack(alignment: .leading, spacing: 2) {

@@ -49,9 +49,10 @@ export class PendingToastBase {
   }
   icon(name = null, { ios = null, android = null } = {}) {
     const icon = {};
-    if (name !== null) icon.name = nonEmpty(name, "icon name");
-    if (ios !== null) icon.ios = nonEmpty(ios, "iOS icon");
-    if (android !== null) icon.android = nonEmpty(android, "Android icon");
+    if (name !== null) icon.name = customIconName(name, "icon name");
+    if (ios !== null) icon.ios = customIconName(ios, "iOS icon");
+    if (android !== null)
+      icon.android = customIconName(android, "Android icon");
     if (!Object.keys(icon).length)
       throw new TypeError("An icon name or platform override is required");
     return this.set("icon", icon);
@@ -201,4 +202,11 @@ export class PendingToastBase {
   maxVisible(value) {
     return this.set("max_visible", positiveInteger(value, "maxVisible"));
   }
+}
+
+function customIconName(value, label) {
+  const name = nonEmpty(value, label);
+  if (name.startsWith("custom:") && !/^custom:[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name))
+    throw new TypeError(`${label} custom icon must use custom: followed by a lowercase kebab-case name`);
+  return name;
 }
