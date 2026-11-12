@@ -28,6 +28,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.input.pointer.pointerInput
@@ -53,12 +56,17 @@ import kotlin.math.abs
 import kotlinx.coroutines.delay
 
 @Composable
-internal fun ToastKitHost(position: ToastKitPosition) {
+internal fun ToastKitHost(
+    position: ToastKitPosition,
+    keyboardHeight: Int = 0,
+    onCardBounds: (String, Rect?) -> Unit = { _, _ -> },
+) {
     val items = ToastKitManager.rendered.filter { effectivePosition(it) == position }
     val vertical = when (position) { ToastKitPosition.TOP -> Arrangement.Top; ToastKitPosition.CENTER -> Arrangement.Center; ToastKitPosition.BOTTOM -> Arrangement.Bottom }
     val safeArea = when (position) {
         ToastKitPosition.TOP -> Modifier.statusBarsPadding()
-        ToastKitPosition.BOTTOM -> Modifier.navigationBarsPadding()
+        // The overlay window sits above the keyboard, so keep bottom toasts clear of it.
+        ToastKitPosition.BOTTOM -> Modifier.windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets(bottom = keyboardHeight)))
         ToastKitPosition.CENTER -> Modifier
     }
     Column(
@@ -67,13 +75,16 @@ internal fun ToastKitHost(position: ToastKitPosition) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         items.forEach { toast ->
-            key(toast.id) { ToastKitCard(toast) }
+            key(toast.id) {
+                DisposableEffect(toast.id) { onDispose { onCardBounds(toast.id, null) } }
+                ToastKitCard(toast, Modifier.onGloballyPositioned { onCardBounds(toast.id, it.boundsInWindow()) })
+            }
         }
     }
 }
 
 @Composable
-private fun ToastKitCard(toast: ToastKitConfiguration) {
+private fun ToastKitCard(toast: ToastKitConfiguration, modifier: Modifier = Modifier) {
     val position = effectivePosition(toast)
     var x by remember(toast.id) { mutableFloatStateOf(0f) }
     var y by remember(toast.id) { mutableFloatStateOf(0f) }
@@ -134,7 +145,7 @@ private fun ToastKitCard(toast: ToastKitConfiguration) {
     val visibility = remember(toast.id) { MutableTransitionState(false) }
     val shouldBeVisible = toast.id !in ToastKitManager.exiting
     LaunchedEffect(shouldBeVisible) { visibility.targetState = shouldBeVisible }
-    AnimatedVisibility(visibleState = visibility, enter = enter, exit = exit) {
+    AnimatedVisibility(visibleState = visibility, modifier = modifier, enter = enter, exit = exit) {
         val interaction = Modifier.padding(vertical = 4.dp).widthIn(max = 560.dp)
                 .then(if (toast.presentation == ToastKitPresentation.STANDARD) Modifier.fillMaxWidth() else Modifier)
                 .semantics { liveRegion = LiveRegionMode.Polite }
@@ -430,7 +441,7 @@ private fun resolvedDirection(toast: ToastKitConfiguration): ToastKitDirection =
         else -> toast.direction
     }
 
-private fun effectivePosition(toast: ToastKitConfiguration): ToastKitPosition =
+internal fun effectivePosition(toast: ToastKitConfiguration): ToastKitPosition =
     if (toast.presentation == ToastKitPresentation.DYNAMIC) ToastKitPosition.TOP else toast.position
 
 private fun directionalEnter(toast: ToastKitConfiguration, spec: androidx.compose.animation.core.FiniteAnimationSpec<androidx.compose.ui.unit.IntOffset>): EnterTransition =

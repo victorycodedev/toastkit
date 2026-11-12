@@ -21,6 +21,9 @@ internal object ToastKitManager {
     private val activeIds = mutableSetOf<String>()
     private val uniqueToId = mutableMapOf<String, String>()
 
+    /** Called on the main thread whenever [rendered] changes, so the overlay windows can follow it. */
+    var onRenderedChanged: (() -> Unit)? = null
+
     fun show(configuration: ToastKitConfiguration): ToastKitShowResult {
         val result = synchronized(identityLock) {
             configuration.uniqueKey?.let { key ->
@@ -98,6 +101,7 @@ internal object ToastKitManager {
         states[id] = state.copy(visible = true)
         visible.add(state.configuration)
         rendered.add(state.configuration)
+        onRenderedChanged?.invoke()
         schedule(state.configuration)
         ToastKitEventDispatcher.shown(id)
     }
@@ -126,6 +130,7 @@ internal object ToastKitManager {
         main.postDelayed({
             rendered.removeAll { it.id == id }
             exiting.remove(id)
+            onRenderedChanged?.invoke()
             releaseIdentity(state.configuration)
             if (promote) promote()
         }, exitDuration)
@@ -165,7 +170,10 @@ internal object ToastKitManager {
         val index = visible.indexOfFirst { it.id == configuration.id }
         if (index >= 0) visible[index] = configuration
         val renderedIndex = rendered.indexOfFirst { it.id == configuration.id }
-        if (renderedIndex >= 0) rendered[renderedIndex] = configuration
+        if (renderedIndex >= 0) {
+            rendered[renderedIndex] = configuration
+            onRenderedChanged?.invoke()
+        }
     }
 
     private inline fun onMain(crossinline operation: () -> Unit) {
