@@ -1,6 +1,6 @@
 # ToastKit for NativePHP Mobile
 
-[Sponsor the continued development of ToastKit](https://flossafrica.com/m/victorycodedev)
+[![Fund my work on FLOSSAfrica](https://flossafrica.com/badge.svg?theme=dark)](https://flossafrica.com/m/victorycodedev?p=toastkit)
 
 ToastKit provides rich, customizable native toast notifications for [NativePHP Mobile](https://nativephp.com/docs/mobile).
 
