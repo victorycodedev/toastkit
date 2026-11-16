@@ -53,16 +53,39 @@ import kotlin.math.abs
 import kotlinx.coroutines.delay
 
 @Composable
-internal fun ToastKitHost(position: ToastKitPosition) {
+internal fun ToastKitHost(
+    position: ToastKitPosition,
+    includesWindowInsets: Boolean = true,
+    onContentVisibilityChanged: ((Boolean) -> Unit)? = null,
+) {
     val items = ToastKitManager.rendered.filter { effectivePosition(it) == position }
+    LaunchedEffect(items.isNotEmpty()) {
+        onContentVisibilityChanged?.invoke(items.isNotEmpty())
+    }
     val vertical = when (position) { ToastKitPosition.TOP -> Arrangement.Top; ToastKitPosition.CENTER -> Arrangement.Center; ToastKitPosition.BOTTOM -> Arrangement.Bottom }
     val safeArea = when (position) {
         ToastKitPosition.TOP -> Modifier.statusBarsPadding()
         ToastKitPosition.BOTTOM -> Modifier.navigationBarsPadding()
         ToastKitPosition.CENTER -> Modifier
     }
+    val edgePadding = when (position) {
+        ToastKitPosition.TOP -> Modifier
+        ToastKitPosition.CENTER -> Modifier.padding(vertical = 12.dp)
+        ToastKitPosition.BOTTOM -> Modifier
+    }
     Column(
-        modifier = Modifier.fillMaxWidth().then(safeArea).padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 1.dp)
+            .then(
+                if (includesWindowInsets) {
+                    safeArea
+                        .padding(horizontal = 16.dp)
+                        .then(edgePadding)
+                } else {
+                    Modifier
+                },
+            ),
         verticalArrangement = vertical,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

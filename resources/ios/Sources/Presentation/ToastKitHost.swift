@@ -26,8 +26,10 @@ struct ToastKitHost: View {
         GeometryReader { proxy in
             ZStack {
                 host(for: .top, alignment: .top)
+                    .offset(y: -12)
                 host(for: .center, alignment: .center)
                 host(for: .bottom, alignment: .bottom)
+                    .offset(y: 12)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
