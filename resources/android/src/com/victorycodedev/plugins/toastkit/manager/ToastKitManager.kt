@@ -124,6 +124,8 @@ internal object ToastKitManager {
         exiting.add(id)
         val exitDuration = if (!state.visible) 0L else if (state.configuration.nativeAndroid) 160L else when (state.configuration.animation) {
             ToastKitAnimation.SPRING, ToastKitAnimation.BOUNCE -> 450L
+            ToastKitAnimation.POP -> 450L
+            ToastKitAnimation.SNAP -> 320L
             ToastKitAnimation.REVEAL -> 280L
             else -> 260L
         }
