@@ -5,7 +5,6 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.MutableTransitionState
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -30,6 +29,9 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalContext
@@ -57,6 +59,8 @@ internal fun ToastKitHost(
     position: ToastKitPosition,
     includesWindowInsets: Boolean = true,
     onContentVisibilityChanged: ((Boolean) -> Unit)? = null,
+    keyboardHeight: Int = 0,
+    onCardBounds: (String, Rect?) -> Unit = { _, _ -> },
 ) {
     val items = ToastKitManager.rendered.filter { effectivePosition(it) == position }
     LaunchedEffect(items.isNotEmpty()) {
@@ -65,8 +69,17 @@ internal fun ToastKitHost(
     val vertical = when (position) { ToastKitPosition.TOP -> Arrangement.Top; ToastKitPosition.CENTER -> Arrangement.Center; ToastKitPosition.BOTTOM -> Arrangement.Bottom }
     val safeArea = when (position) {
         ToastKitPosition.TOP -> Modifier.statusBarsPadding()
-        ToastKitPosition.BOTTOM -> Modifier.navigationBarsPadding()
+        ToastKitPosition.BOTTOM -> Modifier.windowInsetsPadding(
+            WindowInsets.navigationBars.union(WindowInsets(bottom = keyboardHeight)),
+        )
         ToastKitPosition.CENTER -> Modifier
+    }
+    val hostInsets = if (includesWindowInsets) {
+        safeArea
+    } else if (position == ToastKitPosition.BOTTOM && keyboardHeight > 0) {
+        Modifier.windowInsetsPadding(WindowInsets(bottom = keyboardHeight))
+    } else {
+        Modifier
     }
     val edgePadding = when (position) {
         ToastKitPosition.TOP -> Modifier
@@ -77,26 +90,28 @@ internal fun ToastKitHost(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 1.dp)
-            .then(
-                if (includesWindowInsets) {
-                    safeArea
-                        .padding(horizontal = 16.dp)
-                        .then(edgePadding)
-                } else {
-                    Modifier
-                },
-            ),
+            .then(hostInsets)
+            .padding(horizontal = 16.dp)
+            .then(edgePadding),
         verticalArrangement = vertical,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         items.forEach { toast ->
-            key(toast.id) { ToastKitCard(toast) }
+            key(toast.id) {
+                DisposableEffect(toast.id) {
+                    onDispose { onCardBounds(toast.id, null) }
+                }
+                ToastKitCard(
+                    toast,
+                    Modifier.onGloballyPositioned { onCardBounds(toast.id, it.boundsInWindow()) },
+                )
+            }
         }
     }
 }
 
 @Composable
-private fun ToastKitCard(toast: ToastKitConfiguration) {
+private fun ToastKitCard(toast: ToastKitConfiguration, modifier: Modifier = Modifier) {
     val position = effectivePosition(toast)
     var x by remember(toast.id) { mutableFloatStateOf(0f) }
     var y by remember(toast.id) { mutableFloatStateOf(0f) }
@@ -157,7 +172,7 @@ private fun ToastKitCard(toast: ToastKitConfiguration) {
     val visibility = remember(toast.id) { MutableTransitionState(false) }
     val shouldBeVisible = toast.id !in ToastKitManager.exiting
     LaunchedEffect(shouldBeVisible) { visibility.targetState = shouldBeVisible }
-    AnimatedVisibility(visibleState = visibility, enter = enter, exit = exit) {
+    AnimatedVisibility(visibleState = visibility, modifier = modifier, enter = enter, exit = exit) {
         val interaction = Modifier.padding(vertical = 4.dp).widthIn(max = 560.dp)
                 .then(if (toast.presentation == ToastKitPresentation.STANDARD) Modifier.fillMaxWidth() else Modifier)
                 .semantics { liveRegion = LiveRegionMode.Polite }
@@ -275,12 +290,22 @@ private fun DynamicToastKitCard(
     }
     val dropScale by animateFloatAsState(
         targetValue = if (dropExtended) 1f else 0f,
-        animationSpec = if (reduceMotion) tween(1) else spring(dampingRatio = .72f, stiffness = 620f),
+        animationSpec = tween(if (reduceMotion) 1 else 140),
         label = "dynamic-toast-drop",
+    )
+    val expansion by animateFloatAsState(
+        targetValue = if (expanded) 1f else .18f,
+        animationSpec = tween(if (reduceMotion) 1 else 220),
+        label = "dynamic-toast-expansion",
+    )
+    val contentAlpha by animateFloatAsState(
+        targetValue = if (expanded) 1f else 0f,
+        animationSpec = tween(if (reduceMotion) 1 else 150),
+        label = "dynamic-toast-content",
     )
 
     Box(
-        modifier = modifier.then(if (expanded) Modifier.fillMaxWidth() else Modifier),
+        modifier = modifier.fillMaxWidth().padding(top = 16.dp),
         contentAlignment = Alignment.TopCenter,
     ) {
         Box(
@@ -295,10 +320,12 @@ private fun DynamicToastKitCard(
         )
         Surface(
             modifier = Modifier
-                .then(if (expanded) Modifier.fillMaxWidth() else Modifier)
-                .animateContentSize(
-                    animationSpec = if (reduceMotion) tween(1) else spring(dampingRatio = .78f, stiffness = 520f),
-                ),
+                .fillMaxWidth()
+                .graphicsLayer {
+                    scaleX = expansion
+                    scaleY = .82f + (.18f * expansion)
+                    transformOrigin = TransformOrigin(0.5f, 0f)
+                },
             shape = RoundedCornerShape(toast.style.cornerRadius.dp),
             color = toast.style.background,
             contentColor = toast.style.foreground,
@@ -322,66 +349,59 @@ private fun DynamicToastKitCard(
                         )
                     }
 
-                    AnimatedVisibility(
-                        visible = expanded,
-                        modifier = Modifier.weight(1f),
-                        enter = expandHorizontally(expandFrom = Alignment.Start) + fadeIn(),
-                        exit = shrinkHorizontally(shrinkTowards = Alignment.Start) + fadeOut(),
+                    Row(
+                        modifier = Modifier.weight(1f).alpha(contentAlpha),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            Column(Modifier.weight(1f)) {
-                                AnimatedContent(
-                                    targetState = toast.title,
-                                    transitionSpec = { fadeIn(tween(if (reduceMotion) 1 else 140)) togetherWith fadeOut(tween(if (reduceMotion) 1 else 100)) },
-                                    label = "dynamic-toast-title-update",
-                                ) { title ->
-                                    title?.let { Text(
-                                        title,
-                                        color = toast.style.foreground,
-                                        fontSize = toast.titleText?.size?.let(::toastTextSize) ?: 16.sp,
-                                        fontWeight = toast.titleText?.weight?.let(::toastTextWeight) ?: FontWeight.SemiBold,
-                                        fontStyle = toast.titleText?.italic?.let { italic -> if (italic) FontStyle.Italic else FontStyle.Normal },
-                                        fontFamily = toast.titleText?.font?.let(::toastFontFamily),
-                                        maxLines = 1,
-                                    ) }
-                                }
-                                AnimatedContent(
-                                    targetState = toast.message,
-                                    transitionSpec = { fadeIn(tween(if (reduceMotion) 1 else 140)) togetherWith fadeOut(tween(if (reduceMotion) 1 else 100)) },
-                                    label = "dynamic-toast-message-update",
-                                ) { message -> Text(
-                                    message,
+                        Column(Modifier.weight(1f)) {
+                            AnimatedContent(
+                                targetState = toast.title,
+                                transitionSpec = { fadeIn(tween(if (reduceMotion) 1 else 140)) togetherWith fadeOut(tween(if (reduceMotion) 1 else 100)) },
+                                label = "dynamic-toast-title-update",
+                            ) { title ->
+                                title?.let { Text(
+                                    title,
                                     color = toast.style.foreground,
-                                    fontSize = toast.text?.size?.let(::toastTextSize) ?: toastTextSize(ToastKitTextSize.BASE),
-                                    fontWeight = toast.text?.weight?.let(::toastTextWeight) ?: FontWeight.Medium,
-                                    fontStyle = toast.text?.italic?.let { if (it) FontStyle.Italic else FontStyle.Normal },
-                                    fontFamily = toast.text?.font?.let(::toastFontFamily),
-                                    maxLines = 2,
+                                    fontSize = toast.titleText?.size?.let(::toastTextSize) ?: 16.sp,
+                                    fontWeight = toast.titleText?.weight?.let(::toastTextWeight) ?: FontWeight.SemiBold,
+                                    fontStyle = toast.titleText?.italic?.let { italic -> if (italic) FontStyle.Italic else FontStyle.Normal },
+                                    fontFamily = toast.titleText?.font?.let(::toastFontFamily),
+                                    maxLines = 1,
                                 ) }
                             }
-                            toast.actions.forEach { action ->
-                                TextButton(
-                                    onClick = { ToastKitManager.action(toast.id, action.id) },
-                                    colors = ButtonDefaults.textButtonColors(contentColor = action.color ?: toast.style.actionColor),
-                                    contentPadding = PaddingValues(horizontal = 8.dp),
-                                ) { Text(action.label, fontWeight = FontWeight.Bold, maxLines = 1) }
-                            }
-                            if (toast.dismissible) {
-                                IconButton(onClick = { ToastKitManager.dismiss(toast.id) }) {
-                                    MaterialIcon("close", "Dismiss", size = 20.dp, tint = toast.style.foreground)
-                                }
+                            AnimatedContent(
+                                targetState = toast.message,
+                                transitionSpec = { fadeIn(tween(if (reduceMotion) 1 else 140)) togetherWith fadeOut(tween(if (reduceMotion) 1 else 100)) },
+                                label = "dynamic-toast-message-update",
+                            ) { message -> Text(
+                                message,
+                                color = toast.style.foreground,
+                                fontSize = toast.text?.size?.let(::toastTextSize) ?: toastTextSize(ToastKitTextSize.BASE),
+                                fontWeight = toast.text?.weight?.let(::toastTextWeight) ?: FontWeight.Medium,
+                                fontStyle = toast.text?.italic?.let { if (it) FontStyle.Italic else FontStyle.Normal },
+                                fontFamily = toast.text?.font?.let(::toastFontFamily),
+                                maxLines = 2,
+                            ) }
+                        }
+                        toast.actions.forEach { action ->
+                            TextButton(
+                                onClick = { ToastKitManager.action(toast.id, action.id) },
+                                colors = ButtonDefaults.textButtonColors(contentColor = action.color ?: toast.style.actionColor),
+                                contentPadding = PaddingValues(horizontal = 8.dp),
+                            ) { Text(action.label, fontWeight = FontWeight.Bold, maxLines = 1) }
+                        }
+                        if (toast.dismissible) {
+                            IconButton(onClick = { ToastKitManager.dismiss(toast.id) }) {
+                                MaterialIcon("close", "Dismiss", size = 20.dp, tint = toast.style.foreground)
                             }
                         }
                     }
                 }
-                if (expanded && toast.progress != null) {
+                if (toast.progress != null) {
                     LinearProgressIndicator(
                         progress = { displayedProgress },
-                        modifier = Modifier.fillMaxWidth().height(3.dp),
+                        modifier = Modifier.fillMaxWidth().height(3.dp).alpha(contentAlpha),
                         color = toast.style.actionColor,
                         trackColor = toast.style.foreground.copy(alpha = .22f),
                     )
@@ -453,7 +473,7 @@ private fun resolvedDirection(toast: ToastKitConfiguration): ToastKitDirection =
         else -> toast.direction
     }
 
-private fun effectivePosition(toast: ToastKitConfiguration): ToastKitPosition =
+internal fun effectivePosition(toast: ToastKitConfiguration): ToastKitPosition =
     if (toast.presentation == ToastKitPresentation.DYNAMIC) ToastKitPosition.TOP else toast.position
 
 private fun directionalEnter(toast: ToastKitConfiguration, spec: androidx.compose.animation.core.FiniteAnimationSpec<androidx.compose.ui.unit.IntOffset>): EnterTransition =
