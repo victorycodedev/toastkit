@@ -21,7 +21,10 @@ import android.view.inspector.WindowInspector
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.Recomposer
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.AndroidUiDispatcher
 import androidx.compose.ui.platform.ComposeView
@@ -195,6 +198,7 @@ private class ToastKitOverlay(private val activity: ComponentActivity) : Choreog
         private var requested = false
         private var keyboardOffset = 0
         private var attachedParams: WindowManager.LayoutParams? = null
+        private var animationsReady by mutableStateOf(false)
         private val showRunnable = Runnable {
             if (!requested || destroyed || activity.isFinishing || activity.isDestroyed) {
                 return@Runnable
@@ -225,6 +229,7 @@ private class ToastKitOverlay(private val activity: ComponentActivity) : Choreog
                     ToastKitHost(
                         position = position,
                         includesWindowInsets = false,
+                        animationsReady = animationsReady,
                         onCardBounds = ::onCardBounds,
                     )
                 }
@@ -257,6 +262,7 @@ private class ToastKitOverlay(private val activity: ComponentActivity) : Choreog
                                 windowManager.updateViewLayout(view, params)
                             } catch (_: IllegalArgumentException) {
                             }
+                            animationsReady = true
                         }
                     }
                     return true
@@ -280,6 +286,7 @@ private class ToastKitOverlay(private val activity: ComponentActivity) : Choreog
 
         fun hide() {
             requested = false
+            animationsReady = false
             handler.removeCallbacks(showRunnable)
             if (!shown) return
             detachWindow()
@@ -306,7 +313,7 @@ private class ToastKitOverlay(private val activity: ComponentActivity) : Choreog
             if (position != ToastKitPosition.BOTTOM || keyboardOffset == height) return
             keyboardOffset = height
             val params = attachedParams ?: return
-            params.y = keyboardOffset
+            params.y = windowOffset()
             try {
                 windowManager.updateViewLayout(view, params)
             } catch (_: IllegalArgumentException) {
@@ -345,8 +352,16 @@ private class ToastKitOverlay(private val activity: ComponentActivity) : Choreog
                 ToastKitPosition.BOTTOM -> Gravity.BOTTOM
             }
             title = "ToastKit:${position.name}"
-            if (position == ToastKitPosition.BOTTOM) y = keyboardOffset
+            y = windowOffset()
+            // The WindowManager host must not contribute its own device/ROM
+            // window transition. ToastKit's Compose transition is the single
+            // source of truth for both entrance and dismissal animations.
+            windowAnimations = 0
             softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING
+        }
+
+        private fun windowOffset(): Int {
+            return if (position == ToastKitPosition.BOTTOM) keyboardOffset else 0
         }
     }
 }

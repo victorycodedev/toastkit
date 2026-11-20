@@ -4,7 +4,9 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -32,9 +34,11 @@ import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -46,6 +50,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.sp
 import com.nativephp.mobile.ui.MaterialIcon
 import com.nativephp.mobile.ui.NativeUIThemeProvider
@@ -58,11 +63,13 @@ import kotlinx.coroutines.delay
 internal fun ToastKitHost(
     position: ToastKitPosition,
     includesWindowInsets: Boolean = true,
+    animationsReady: Boolean = true,
     onContentVisibilityChanged: ((Boolean) -> Unit)? = null,
     keyboardHeight: Int = 0,
     onCardBounds: (String, Rect?) -> Unit = { _, _ -> },
 ) {
     val items = ToastKitManager.rendered.filter { effectivePosition(it) == position }
+    val addedShadowOutset = with(LocalDensity.current) { 8.dp.toPx() }
     LaunchedEffect(items.isNotEmpty()) {
         onContentVisibilityChanged?.invoke(items.isNotEmpty())
     }
@@ -103,7 +110,19 @@ internal fun ToastKitHost(
                 }
                 ToastKitCard(
                     toast,
-                    Modifier.onGloballyPositioned { onCardBounds(toast.id, it.boundsInWindow()) },
+                    animationsReady,
+                    Modifier.onGloballyPositioned { coordinates ->
+                        val bounds = coordinates.boundsInWindow()
+                        onCardBounds(
+                            toast.id,
+                            Rect(
+                                bounds.left,
+                                bounds.top + addedShadowOutset,
+                                bounds.right,
+                                bounds.bottom - addedShadowOutset,
+                            ),
+                        )
+                    },
                 )
             }
         }
@@ -111,7 +130,11 @@ internal fun ToastKitHost(
 }
 
 @Composable
-private fun ToastKitCard(toast: ToastKitConfiguration, modifier: Modifier = Modifier) {
+private fun ToastKitCard(
+    toast: ToastKitConfiguration,
+    animationsReady: Boolean,
+    modifier: Modifier = Modifier,
+) {
     val position = effectivePosition(toast)
     var x by remember(toast.id) { mutableFloatStateOf(0f) }
     var y by remember(toast.id) { mutableFloatStateOf(0f) }
@@ -149,31 +172,40 @@ private fun ToastKitCard(toast: ToastKitConfiguration, modifier: Modifier = Modi
         }
     }
     val usesNativeStandard = toast.nativeAndroid && toast.presentation == ToastKitPresentation.STANDARD
-    val enter = if (reduceMotion || usesNativeStandard) fadeIn(tween(120)) else when (toast.animation) {
-        ToastKitAnimation.FADE -> fadeIn(tween(180))
-        ToastKitAnimation.SLIDE -> directionalEnter(toast, tween(220)) + fadeIn()
-        ToastKitAnimation.SCALE -> scaleIn(tween(180), initialScale = .9f) + fadeIn()
-        ToastKitAnimation.SPRING -> scaleIn(spring(), initialScale = .86f) + fadeIn()
-        ToastKitAnimation.SNAP -> directionalEnter(toast, spring(dampingRatio = .68f, stiffness = 950f)) + fadeIn(tween(90))
-        ToastKitAnimation.POP -> scaleIn(spring(dampingRatio = .55f, stiffness = 650f), initialScale = .72f) + fadeIn(tween(100))
-        ToastKitAnimation.REVEAL -> expandHorizontally(tween(240), expandFrom = revealAlignment(toast)) + fadeIn(tween(160))
-        ToastKitAnimation.BOUNCE -> directionalEnter(toast, spring(dampingRatio = .45f, stiffness = 360f)) + fadeIn(tween(120))
-    }
-    val exit = if (reduceMotion || usesNativeStandard) fadeOut(tween(100)) else when (toast.animation) {
-        ToastKitAnimation.FADE -> fadeOut(tween(160))
-        ToastKitAnimation.SLIDE -> directionalExit(toast, tween(220)) + fadeOut()
-        ToastKitAnimation.SCALE -> scaleOut(tween(160), targetScale = .9f) + fadeOut()
-        ToastKitAnimation.SPRING -> scaleOut(spring(), targetScale = .86f) + fadeOut(tween(220))
-        ToastKitAnimation.SNAP -> directionalExit(toast, tween(110)) + fadeOut(tween(90))
-        ToastKitAnimation.POP -> scaleOut(tween(150), targetScale = .72f) + fadeOut(tween(120))
-        ToastKitAnimation.REVEAL -> shrinkHorizontally(tween(210), shrinkTowards = revealAlignment(toast)) + fadeOut(tween(150))
-        ToastKitAnimation.BOUNCE -> directionalExit(toast, tween(220)) + fadeOut(tween(160))
-    }
-    val visibility = remember(toast.id) { MutableTransitionState(false) }
-    val shouldBeVisible = toast.id !in ToastKitManager.exiting
-    LaunchedEffect(shouldBeVisible) { visibility.targetState = shouldBeVisible }
-    AnimatedVisibility(visibleState = visibility, modifier = modifier, enter = enter, exit = exit) {
-        val interaction = Modifier.padding(vertical = 4.dp).widthIn(max = 560.dp)
+    // A WindowManager host is initially transparent while its first frame is
+    // prepared. Do not consume the enter transition behind that transparent
+    // window; start it only after the host is actually visible.
+    val shouldBeVisible = animationsReady && toast.id !in ToastKitManager.exiting
+    val simplifiedMotion = reduceMotion || usesNativeStandard
+    val transition = updateTransition(targetState = shouldBeVisible, label = "toast-visibility")
+    val visibilityAlpha by transition.animateFloat(
+        transitionSpec = { alphaSpec(toast.animation, targetState, simplifiedMotion) },
+        label = "toast-alpha",
+    ) { visible -> if (visible) 1f else 0f }
+    val motionAmount by transition.animateFloat(
+        transitionSpec = { motionSpec(toast.animation, simplifiedMotion) },
+        label = "toast-motion",
+    ) { visible -> if (visible || !toast.animation.isDirectional() || simplifiedMotion) 0f else 1f }
+    val scaleAmount by transition.animateFloat(
+        transitionSpec = { scaleSpec(toast.animation, targetState, simplifiedMotion) },
+        label = "toast-scale",
+    ) { visible -> if (visible || simplifiedMotion) 1f else toast.animation.hiddenScale() }
+    val revealAmount by transition.animateFloat(
+        transitionSpec = { tween(if (targetState) 240 else 210) },
+        label = "toast-reveal",
+    ) { visible -> if (visible || toast.animation != ToastKitAnimation.REVEAL || simplifiedMotion) 1f else .01f }
+    var cardSize by remember(toast.id) { mutableStateOf(IntSize.Zero) }
+
+    // Keep the full card laid out even while visually hidden. A collapsing
+    // AnimatedVisibility changes a WRAP_CONTENT window's height and makes every
+    // bottom toast appear to slide, regardless of its selected animation.
+    Box(modifier = modifier) {
+        // The activity-scoped host is only as tall as its content. Leave enough
+        // transparent space for elevation blur so the window edge does not cut
+        // the shadow into a hard rectangle.
+        val interaction = Modifier
+                .padding(vertical = 12.dp)
+                .widthIn(max = 560.dp)
                 .then(if (toast.presentation == ToastKitPresentation.STANDARD) Modifier.fillMaxWidth() else Modifier)
                 .semantics { liveRegion = LiveRegionMode.Polite }
                 .then(
@@ -181,7 +213,47 @@ private fun ToastKitCard(toast: ToastKitConfiguration, modifier: Modifier = Modi
                         ToastKitManager.press(toast.id)
                     } else Modifier,
                 )
-                .graphicsLayer { translationX = displayedX; translationY = displayedY; alpha = (1f - (abs(displayedX) + abs(displayedY)) / 700f).coerceIn(.35f, 1f) }
+                .onSizeChanged { cardSize = it }
+                .graphicsLayer {
+                    val direction = resolvedDirection(toast)
+                    val width = cardSize.width.toFloat()
+                    val height = cardSize.height.toFloat()
+                    translationX = displayedX + when (direction) {
+                        ToastKitDirection.LEFT -> -width * motionAmount
+                        ToastKitDirection.RIGHT -> width * motionAmount
+                        else -> 0f
+                    }
+                    translationY = displayedY + when (direction) {
+                        ToastKitDirection.TOP -> -height * motionAmount
+                        ToastKitDirection.BOTTOM -> height * motionAmount
+                        else -> 0f
+                    }
+                    scaleX = scaleAmount
+                    scaleY = scaleAmount
+                    if (toast.animation == ToastKitAnimation.REVEAL && !simplifiedMotion) {
+                        clip = true
+                        when (direction) {
+                            ToastKitDirection.LEFT -> {
+                                scaleX = revealAmount
+                                transformOrigin = TransformOrigin(0f, .5f)
+                            }
+                            ToastKitDirection.RIGHT -> {
+                                scaleX = revealAmount
+                                transformOrigin = TransformOrigin(1f, .5f)
+                            }
+                            ToastKitDirection.TOP -> {
+                                scaleY = revealAmount
+                                transformOrigin = TransformOrigin(.5f, 0f)
+                            }
+                            else -> {
+                                scaleY = revealAmount
+                                transformOrigin = TransformOrigin(.5f, 1f)
+                            }
+                        }
+                    }
+                    alpha = visibilityAlpha *
+                        (1f - (abs(displayedX) + abs(displayedY)) / 700f).coerceIn(.35f, 1f)
+                }
                 .then(toast.opacity?.let { Modifier.alpha(it) } ?: Modifier)
                 .then(gesture)
         if (toast.presentation == ToastKitPresentation.DYNAMIC) {
@@ -476,25 +548,59 @@ private fun resolvedDirection(toast: ToastKitConfiguration): ToastKitDirection =
 internal fun effectivePosition(toast: ToastKitConfiguration): ToastKitPosition =
     if (toast.presentation == ToastKitPresentation.DYNAMIC) ToastKitPosition.TOP else toast.position
 
-private fun directionalEnter(toast: ToastKitConfiguration, spec: androidx.compose.animation.core.FiniteAnimationSpec<androidx.compose.ui.unit.IntOffset>): EnterTransition =
-    when (resolvedDirection(toast)) {
-        ToastKitDirection.LEFT -> slideInHorizontally(spec) { -it }
-        ToastKitDirection.RIGHT -> slideInHorizontally(spec) { it }
-        ToastKitDirection.TOP -> slideInVertically(spec) { -it }
-        else -> slideInVertically(spec) { it }
-    }
+private fun ToastKitAnimation.isDirectional(): Boolean =
+    this == ToastKitAnimation.SLIDE || this == ToastKitAnimation.SNAP || this == ToastKitAnimation.BOUNCE
 
-private fun directionalExit(toast: ToastKitConfiguration, spec: androidx.compose.animation.core.FiniteAnimationSpec<androidx.compose.ui.unit.IntOffset>): ExitTransition =
-    when (resolvedDirection(toast)) {
-        ToastKitDirection.LEFT -> slideOutHorizontally(spec) { -it }
-        ToastKitDirection.RIGHT -> slideOutHorizontally(spec) { it }
-        ToastKitDirection.TOP -> slideOutVertically(spec) { -it }
-        else -> slideOutVertically(spec) { it }
-    }
+private fun ToastKitAnimation.hiddenScale(): Float = when (this) {
+    ToastKitAnimation.SCALE -> .9f
+    ToastKitAnimation.SPRING -> .86f
+    ToastKitAnimation.POP -> .72f
+    else -> 1f
+}
 
-private fun revealAlignment(toast: ToastKitConfiguration): Alignment.Horizontal = when (resolvedDirection(toast)) {
-    ToastKitDirection.RIGHT -> Alignment.End
-    else -> Alignment.Start
+private fun alphaSpec(
+    animation: ToastKitAnimation,
+    entering: Boolean,
+    simplified: Boolean,
+): FiniteAnimationSpec<Float> {
+    if (simplified) return tween(if (entering) 120 else 100)
+    val duration = when (animation) {
+        ToastKitAnimation.FADE -> if (entering) 180 else 160
+        ToastKitAnimation.SLIDE -> 220
+        ToastKitAnimation.SCALE -> if (entering) 180 else 160
+        ToastKitAnimation.SPRING -> 220
+        ToastKitAnimation.SNAP -> 90
+        ToastKitAnimation.POP -> if (entering) 100 else 120
+        ToastKitAnimation.REVEAL -> if (entering) 160 else 150
+        ToastKitAnimation.BOUNCE -> if (entering) 120 else 160
+    }
+    return tween(duration)
+}
+
+private fun motionSpec(
+    animation: ToastKitAnimation,
+    simplified: Boolean,
+): FiniteAnimationSpec<Float> {
+    if (simplified) return tween(1)
+    return when (animation) {
+        ToastKitAnimation.SNAP -> spring(dampingRatio = .68f, stiffness = 950f)
+        ToastKitAnimation.BOUNCE -> spring(dampingRatio = .45f, stiffness = 360f)
+        else -> tween(220)
+    }
+}
+
+private fun scaleSpec(
+    animation: ToastKitAnimation,
+    entering: Boolean,
+    simplified: Boolean,
+): FiniteAnimationSpec<Float> {
+    if (simplified) return tween(1)
+    return when (animation) {
+        ToastKitAnimation.SCALE -> tween(if (entering) 180 else 160)
+        ToastKitAnimation.SPRING -> spring()
+        ToastKitAnimation.POP -> spring(dampingRatio = .55f, stiffness = 650f)
+        else -> tween(1)
+    }
 }
 
 private fun toastTextSize(size: ToastKitTextSize) = when (size) {
