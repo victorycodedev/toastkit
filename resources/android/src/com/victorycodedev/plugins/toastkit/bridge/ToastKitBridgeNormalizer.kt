@@ -177,7 +177,7 @@ internal object ToastKitBridgeNormalizer {
             "info" -> listOf("#1E40AF", "#FFFFFF", "#93C5FD", "#BFDBFE")
             else -> listOf("#1F2937", "#FFFFFF", "#D1D5DB", "#E5E7EB")
         }
-        return ToastKitStyle(parseColor(colors[0]), parseColor(colors[1]), parseColor(colors[2]), parseColor(colors[3]), 16f, 16f, true)
+        return ToastKitStyle(parseColor(colors[0]), parseColor(colors[1]), parseColor(colors[2]), parseColor(colors[3]), 16f, 12f, true)
     }
 
     private fun defaultIcon(variant: String): ToastKitIcon? = when (variant) {

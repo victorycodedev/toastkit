@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-11-23
+
+### Changed
+
+- Reduced the default toast padding from 16 to 12 points on PHP, JavaScript, Android, and iOS for a more compact title-and-message layout. Explicit `padding()` values continue to take precedence.
+- Softened standard and dynamic Android toast shadows by using a lower elevation with coordinated transparent clearance.
+
+### Fixed
+
+- Fixed Android elevation blur being clipped by the activity-scoped overlay window and appearing as a hard rectangular band beneath toast cards.
+- Fixed the Android touchable region including transparent shadow clearance around a toast on platforms that support precise touch regions.
+
 ## [1.6.0] - 2026-11-20
 
 ### Added

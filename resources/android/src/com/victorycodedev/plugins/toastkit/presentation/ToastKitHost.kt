@@ -59,6 +59,9 @@ import com.victorycodedev.plugins.toastkit.model.*
 import kotlin.math.abs
 import kotlinx.coroutines.delay
 
+private val ToastShadowElevation = 4.dp
+private val ToastShadowClearance = 12.dp
+
 @Composable
 internal fun ToastKitHost(
     position: ToastKitPosition,
@@ -69,7 +72,7 @@ internal fun ToastKitHost(
     onCardBounds: (String, Rect?) -> Unit = { _, _ -> },
 ) {
     val items = ToastKitManager.rendered.filter { effectivePosition(it) == position }
-    val addedShadowOutset = with(LocalDensity.current) { 8.dp.toPx() }
+    val addedShadowOutset = with(LocalDensity.current) { ToastShadowClearance.toPx() }
     LaunchedEffect(items.isNotEmpty()) {
         onContentVisibilityChanged?.invoke(items.isNotEmpty())
     }
@@ -204,7 +207,7 @@ private fun ToastKitCard(
         // transparent space for elevation blur so the window edge does not cut
         // the shadow into a hard rectangle.
         val interaction = Modifier
-                .padding(vertical = 12.dp)
+                .padding(vertical = ToastShadowClearance)
                 .widthIn(max = 560.dp)
                 .then(if (toast.presentation == ToastKitPresentation.STANDARD) Modifier.fillMaxWidth() else Modifier)
                 .semantics { liveRegion = LiveRegionMode.Polite }
@@ -263,7 +266,7 @@ private fun ToastKitCard(
         } else {
         Column(
             modifier = interaction
-                .then(if (toast.style.shadow) Modifier.shadow(8.dp, RoundedCornerShape(toast.style.cornerRadius.dp)) else Modifier)
+                .then(if (toast.style.shadow) Modifier.shadow(ToastShadowElevation, RoundedCornerShape(toast.style.cornerRadius.dp)) else Modifier)
                 .clip(RoundedCornerShape(toast.style.cornerRadius.dp)).background(toast.style.background)
                 .padding(toast.style.padding.dp),
         ) {
@@ -401,7 +404,7 @@ private fun DynamicToastKitCard(
             shape = RoundedCornerShape(toast.style.cornerRadius.dp),
             color = toast.style.background,
             contentColor = toast.style.foreground,
-            shadowElevation = if (toast.style.shadow) 10.dp else 0.dp,
+            shadowElevation = if (toast.style.shadow) ToastShadowElevation else 0.dp,
         ) {
             Column {
                 Row(
