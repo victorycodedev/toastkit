@@ -297,6 +297,8 @@ test("attached data is copied and remains sparse in updates", () => {
 });
 
 test("custom styling is normalized", () => {
+  assert.equal(Toast.make("x").payload().style.padding, 12);
+
   const payload = Toast.make("x")
     .background("#abc")
     .foreground("#ffffff")

@@ -71,7 +71,7 @@ export class PendingToast extends PendingToastBase {
       loading: false,
       swipe_to_dismiss: true,
       dismissible: false,
-      style: { corner_radius: 16, padding: 16, shadow: true },
+      style: { corner_radius: 16, padding: 12, shadow: true },
       strategy: "queue",
       max_visible: 3,
       overflow_behavior: "queue",

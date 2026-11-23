@@ -27,7 +27,7 @@ it('sends the show contract with full defaults', function () {
             'background' => '#1F2937',
             'foreground' => '#FFFFFF',
             'corner_radius' => 16.0,
-            'padding' => 16.0,
+            'padding' => 12.0,
             'shadow' => true,
         ]);
 });

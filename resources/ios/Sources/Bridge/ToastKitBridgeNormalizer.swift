@@ -202,7 +202,7 @@ enum ToastKitBridgeNormalizer {
         case "info": ["#1E40AF", "#FFFFFF", "#93C5FD", "#BFDBFE"]
         default: ["#1F2937", "#FFFFFF", "#D1D5DB", "#E5E7EB"]
         }
-        return ToastKitStyleConfiguration(background: safeColor(colors[0]), foreground: safeColor(colors[1]), iconColor: safeColor(colors[2]), actionColor: safeColor(colors[3]), cornerRadius: 16, padding: 16, shadow: true)
+        return ToastKitStyleConfiguration(background: safeColor(colors[0]), foreground: safeColor(colors[1]), iconColor: safeColor(colors[2]), actionColor: safeColor(colors[3]), cornerRadius: 16, padding: 12, shadow: true)
     }
 
     private static func defaultIcon(_ variant: String) -> ToastKitIconConfiguration? {
